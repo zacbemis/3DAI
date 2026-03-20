@@ -2,5 +2,5 @@
 .env
 .env.*
 
-# Dependencies
-node_modules/
+# Dependencies (any folder named node_modules, at any depth)
+**/node_modules/
