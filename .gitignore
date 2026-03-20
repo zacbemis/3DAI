@@ -1,0 +1,6 @@
+# Environment variables (anywhere in the repo)
+.env
+.env.*
+
+# Dependencies
+node_modules/
