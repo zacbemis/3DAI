@@ -1,0 +1,1 @@
+import backgroundImage from '../../assets/landing.jpg';
