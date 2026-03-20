@@ -32,6 +32,7 @@ isProject: false
 
 - Desktop: Electron + React + TypeScript.
 - Backend: Node.js + Express + TypeScript (no Python/FastAPI).
+- AI Model: Single model (e.g. GPT-4o) handles both SCAD code generation and vision-based evaluation.
 - Modeling: OpenSCAD CLI invoked from Node worker service.
 - Image composition: Node image library (prefer `sharp`, fallback `jimp`) for 2x2 labeled grid.
 - 3D viewer: React Three Fiber (or Three.js directly if needed).
@@ -55,18 +56,24 @@ isProject: false
   - `GET /api/generations/:id/stream` (SSE)
   - `GET /api/generations` (list user's generations)
   - `GET /api/generations/:id` (generation detail with steps + assets)
+  - `POST /api/generations/:id/continue` (submit user feedback + trigger next step when auto_evaluate=false)
+  - `POST /api/generations/:id/cancel` (cancel a running/awaiting_review generation)
+  - `GET /api/generations/:id/steps/:stepNumber/stl` (enqueue on-demand STL compile via worker, return result)
   - `GET /api/projects` / `POST /api/projects` (project management)
   - `GET /api/presets` / `POST /api/presets` (user presets)
-- `worker` service handles generation loop:
-  1. LLM creates/revises OpenSCAD code.
-  2. Write `step_n.scad` to temp workspace.
-  3. Run OpenSCAD for STL + 4 angle renders.
-  4. Combine renders into labeled 2x2 grid.
-  5. Upload assets to Supabase Storage.
-  6. If `auto_evaluate` is true: call vision model for score/feedback, then revise and loop.
-  7. If `auto_evaluate` is false: persist step, emit progress, and stop. User reviews manually and can trigger further steps.
-  8. Persist step and emit progress via Redis pub/sub.
-  9. Repeat until score >= 8, max steps reached, or user stops.
+- `worker` service handles:
+  - **Generation loop:**
+    1. LLM creates/revises OpenSCAD code.
+    2. Write `step_n.scad` to temp workspace.
+    3. Run OpenSCAD to produce 4 angle renders (STL is not persisted — SCAD code is saved in DB).
+    4. Combine renders into labeled 2x2 grid. Downscale one render as a thumbnail for history/list views.
+    5. Upload render/grid/thumbnail assets to Supabase Storage.
+    6. If `auto_evaluate` is true: send renders to the AI model for score/feedback, then revise and loop.
+    7. If `auto_evaluate` is false: persist step, set generation status to `awaiting_review`, emit progress, and stop. User reviews and triggers continue via the API.
+    8. Persist step and emit progress via Redis pub/sub.
+    9. Repeat until score >= 8, max steps reached, or user stops.
+  - **On-demand STL compilation:** compiles SCAD code from DB when requested (OpenSCAD only runs in the worker container).
+  - **Cancellation:** checks for cancelled status between steps and aborts if found.
 - `api` and `worker` coordinate via Redis-backed queue (BullMQ).
 
 ## Compose Services (MVP)
@@ -113,8 +120,8 @@ One row per prompt submission.
 | user_id | uuid FK | → profiles |
 | project_id | uuid FK | nullable (ungrouped) |
 | prompt | text | the user's natural language request |
-| status | enum | queued, running, completed, failed, cancelled |
-| model | text | which LLM was used |
+| status | enum | queued, running, awaiting_review, completed, failed, cancelled |
+| model | text | which AI model was used |
 | auto_evaluate | boolean | default true; when false, worker stops after each step for manual review |
 | max_steps | int | default 5 |
 | final_score | numeric | nullable, set on completion |
@@ -132,8 +139,10 @@ Each LLM → compile → evaluate cycle within a generation.
 | step_number | int | 1-indexed |
 | status | enum | running, completed, failed |
 | scad_code | text | the OpenSCAD source produced at this step |
-| score | numeric | nullable, from vision model (null if auto_evaluate off) |
-| feedback | jsonb | nullable, flexible vision model response |
+| score | numeric | nullable, from vision evaluation (null if auto_evaluate off) |
+| feedback | jsonb | nullable, flexible AI model vision response |
+| user_feedback | text | nullable, manual feedback from user (auto_evaluate=false flow) |
+| error | text | nullable, compilation or processing error for this step |
 | duration_ms | int | nullable |
 | created_at | timestamptz | |
 | completed_at | timestamptz | nullable |
@@ -146,7 +155,7 @@ Every file produced during generation.
 | id | uuid PK | |
 | generation_id | uuid FK | → generations |
 | step_id | uuid FK | nullable (for final/merged assets) |
-| kind | enum | scad, stl, render, grid, thumbnail |
+| kind | enum | render, grid, thumbnail |
 | storage_path | text | path in Supabase Storage bucket |
 | file_name | text | display name |
 | mime_type | text | |
@@ -173,26 +182,29 @@ Saved user configuration defaults.
 - Object paths:
   - `users/{user_id}/generations/{generation_id}/step_{n}/...`
   - `users/{user_id}/generations/{generation_id}/final/...`
-- Worker uploads all important outputs (SCAD/STL/grid + optionally individual renders).
-- API returns short-lived signed URLs for frontend display/download.
+- Worker uploads renders and grids. SCAD code is stored inline in the `steps` table.
+- STL files are **not persisted** — they are compiled on demand from SCAD code via the API.
+- API returns short-lived signed URLs for image assets and compiles STLs on the fly for download/3D viewer.
 
 ## SSE Event Contracts
 
-- `step`: step number, stage, score (if evaluated), feedback, asset URLs.
-- `status`: granular stage updates (`queued`, `generating_scad`, `compiling`, `rendering`, `evaluating`, `revising`, `awaiting_review`).
+- `step`: step number, status, score (if evaluated), feedback, asset URLs.
+- `status`: granular stage updates (`queued`, `generating_scad`, `compiling`, `rendering`, `compositing`, `evaluating`, `revising`, `awaiting_review`).
 - `complete`: final asset URLs + final score.
 - `error`: stage, message, retryable.
+- `cancelled`: emitted when a generation is cancelled mid-run.
 
 ## Auto-Evaluate Behavior
 
 When `auto_evaluate` is **true** (default):
-- After each step's renders are produced, the vision model scores the output automatically.
-- If score >= 8, generation completes. Otherwise the LLM revises using the feedback.
+- After each step's renders are produced, the AI model scores the output via its vision capability.
+- If score >= 8, generation completes. Otherwise the model revises using its own feedback.
 - Fully autonomous loop up to `max_steps`.
 
 When `auto_evaluate` is **false**:
-- After each step's renders are produced, the worker stops and emits `awaiting_review`.
-- The user can inspect the renders/STL in the UI, provide manual feedback, and trigger the next step.
+- After each step's renders are produced, the worker stops and sets generation status to `awaiting_review`.
+- The user can inspect the renders in the UI, load the STL on demand in the 3D viewer, and provide written feedback.
+- The user triggers `POST /api/generations/:id/continue` with their feedback, which is stored in `steps.user_feedback` and fed to the AI model for the next step.
 - Gives the user full control over the refinement process.
 
 ## Key Risks and Mitigations
@@ -225,11 +237,11 @@ desktop --> api[ExpressAPI]
 api --> queue[RedisBullMQ]
 queue --> worker[GenerationWorker]
 worker --> openscad[OpenSCADCLI]
-worker -->|auto_evaluate=true| vision[VisionModel]
+worker -->|evaluate + generate| ai[AIModel]
 worker --> supabase[SupabaseDBStorage]
 worker --> pubsub[RedisPubSub]
 pubsub --> api
 api --> sse[SSEStream]
 sse --> desktop
-desktop -->|auto_evaluate=false| api
+desktop -->|continue / cancel| api
 ```
