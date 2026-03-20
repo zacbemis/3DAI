@@ -1,0 +1,6 @@
+# Environment variables (anywhere in the repo)
+.env
+.env.*
+
+# Dependencies (any folder named node_modules, at any depth)
+**/node_modules/
