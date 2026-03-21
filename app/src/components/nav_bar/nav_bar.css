@@ -45,3 +45,12 @@
 .nav-btn.signup:hover {
     background: rgba(255, 255, 255, 0.3);
 }
+
+.nav-btn.chat {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.nav-btn.chat:hover {
+    background: rgba(255, 255, 255, 0.18);
+}

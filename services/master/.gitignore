@@ -4,3 +4,6 @@
 
 # Dependencies (any folder named node_modules, at any depth)
 **/node_modules/
+
+# Generated OpenSCAD / mesh outputs
+stlfile/*.stl

@@ -1,0 +1,35 @@
+---
+description: Electron desktop app patterns and security
+globs: "app/**/*.ts,app/**/*.tsx"
+alwaysApply: false
+---
+
+# Electron Patterns
+
+## Process Separation
+
+- **Main process** (`main.ts`): window management, system APIs, IPC handlers only
+- **Preload** (`preload.ts`): expose minimal, typed APIs via `contextBridge` — no direct Node access in renderer
+- **Renderer** (`renderer.ts` + React): pure web code, communicates with main via the preload bridge
+
+```ts
+// preload.ts — expose only what the renderer needs
+contextBridge.exposeInMainWorld('api', {
+  getAuthToken: () => ipcRenderer.invoke('auth:get-token'),
+  onGenerationProgress: (cb: (event: SseEvent) => void) =>
+    ipcRenderer.on('generation:progress', (_e, data) => cb(data)),
+});
+```
+
+## Security
+
+- Enable `contextIsolation: true` and `nodeIntegration: false` — always
+- Never pass raw IPC channels to the renderer — wrap in typed preload functions
+- Validate all IPC inputs in the main process before acting on them
+- Use `safeStorage` for persisting tokens — never store secrets in plaintext
+
+## OAuth Flow
+
+- Open OAuth URL in the system browser, not in a BrowserWindow
+- Handle the callback via deep link (custom protocol) registered with the OS
+- Exchange the auth code in the main process, then pass the session to the renderer via IPC

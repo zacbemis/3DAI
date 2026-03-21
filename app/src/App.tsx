@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import LandingPage from './pages/landing_page/LandingPage';
+import { useState } from 'react';
+import { LandingPage } from './pages/landing_page/LandingPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import SignupPage from './pages/SignupPage/SignupPage';
 import ResetPassword from './pages/ResetPassword/ResetPassword';
@@ -23,12 +23,11 @@ const App: React.FC = () => {
                 />
             )}
 
-            {view === 'signup' && (
-                <SignupPage 
-                    onSignupSuccess={() => setView('login')} 
-                    onBackToLogin={() => setView('login')} 
-                />
-            )}
+  return (
+    <div className="app-viewport">
+      {view === 'landing' && (
+        <LandingPage onLoginClick={() => setView('login')} onChatClick={() => setView('chat')} />
+      )}
 
             {view === 'resetpassword' && (
                 <ResetPassword
@@ -43,4 +42,7 @@ const App: React.FC = () => {
     );
 };
 
-export default App;
+      {view === 'chat' && <ChatPage />}
+    </div>
+  );
+}

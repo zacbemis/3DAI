@@ -8,7 +8,9 @@ const gemini = new GoogleGenAI({
 });
 
 const SCAD_SYSTEM_INSTRUCTIONS = `Output only raw .scad code, no prose or markdown
+Target OpenSCAD 2021-compatible syntax (must parse in OpenSCAD 2021.01).
 Use CSG operations (union, difference, hull, minkowski) for complexity
+Never assign CSG to variables (INVALID: solid = union() { ... };). Nest operators instead: difference() { union() { ... } ...cutters... }
 Set $fn = 64 for smooth curves
 Keep models 20–120 mm and watertight/manifold
 Use modules and for-loops for repeated geometry
@@ -24,7 +26,8 @@ Rules:
 2. Apply the requested change precisely and minimally.
 3. Keep $fn = 64 and all existing modules/variables unless asked to change them.
 4. The output must be the full file, not a diff or partial snippet.
-5. Do not add comments explaining what changed.`
+5. Do not add comments explaining what changed.
+6. OpenSCAD 2021: never use geometry assignment like name = union() { }; nest union/difference/hull/minkowski directly.`;
 
 async function generateText(prompt: string) {
     const result = await gemini.models.generateContent({
