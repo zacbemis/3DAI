@@ -4,9 +4,10 @@ import './LoginPage.css';
 interface LoginPageProps {
     onSignupClick: () => void;
     onLoginSuccess: () => void;
+    onForgotPasswordClick: () => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({onSignupClick, onLoginSuccess }) => {
+const LoginPage: React.FC<LoginPageProps> = ({onSignupClick, onLoginSuccess, onForgotPasswordClick }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -48,7 +49,8 @@ const LoginPage: React.FC<LoginPageProps> = ({onSignupClick, onLoginSuccess }) =
                             required 
                         />
                     </div>
-                    <p className="forget-password-btn">
+                    <p className="forget-password-btn" onClick={onForgotPasswordClick}
+                        style={{ cursor: 'pointer' }}>
                         Forget Password?
                     </p>
 
