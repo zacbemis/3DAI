@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import LandingPage from './pages/LandingPage/LandingPage';
+import SignupPage from './pages/SignupPage/SignupPage';
 import LoginPage from './pages/LoginPage/LoginPage';
-import { LandingPage } from './pages/landing_page/LandingPage';
+import { LandingPage } from './pages/LandingPage/LandingPage';
 import ResetPassword from './pages/ResetPassword/ResetPassword';
 import UpdatePassword from './pages/UpdatePassword/UpdatePassword'; 
 import ChatArea from './components/chat_area/chat_area';
 import { getSupabaseClient } from './lib/supabaseClient'; 
 import './App.css';
 
-const App: React.FC = () => {
+export const App: React.FC = () => {
     console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
 
     const [view, setView] = useState<'landing' | 'login' | 'chat' | 'signup' | 'forgotpassword' | 'updatepassword'>('landing');
@@ -64,7 +64,7 @@ const App: React.FC = () => {
                 />
             )}
 
-      {view === 'chat' && <ChatPage />}
     </div>
   );
 }
+
