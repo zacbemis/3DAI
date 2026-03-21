@@ -1,7 +1,14 @@
 import express, { type ErrorRequestHandler, type Response } from 'express';
 import path from 'node:path';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { generateText, modifyText } from './gemini/gemini';
+import { generateText as geminiGenerate, modifyText as geminiModify } from './gemini/gemini';
+import { generateText as claudeGenerate, modifyText as claudeModify } from './gemini/claude';
+
+// Auto-detect backend: ANTHROPIC_API_KEY → Claude, GEMINI_API_KEY → Gemini
+const useClaudeBackend = !!process.env.ANTHROPIC_API_KEY;
+const generateText = useClaudeBackend ? claudeGenerate : geminiGenerate;
+const modifyText = useClaudeBackend ? claudeModify : geminiModify;
+console.log(`[AI Backend] Using: ${useClaudeBackend ? 'Claude (claude-sonnet-4-6)' : 'Gemini (gemini-2.5-flash)'}`);
 import {
   exportScadToStl,
   resolveOpenScadBinary,
@@ -331,13 +338,6 @@ app.post('/prompts/by-id', async (req, res) => {
 
 app.post('/generate', async (req, res, next) => {
   const db = getSupabase();
-  if (!db) {
-    res.status(503).json({
-      error: 'Supabase not configured',
-      hint: 'Set SUPABASE_URL and a key in .env',
-    });
-    return;
-  }
   try {
     const prompt = req.body?.prompt;
     if (typeof prompt !== 'string' || !prompt.trim()) {
@@ -350,46 +350,39 @@ app.post('/generate', async (req, res, next) => {
     const raw = await generateText(prompt);
     const text = writeOutputScad(raw);
 
-    const now = new Date().toISOString();
-    const row: Record<string, unknown> = {
-      prompt,
-      scad_code: text,
-      model: 'gemini-2.5-flash',
-      status: 'completed',
-      created_at: now,
-      completed_at: now,
-    };
-    if (req.body.user_id != null && req.body.user_id !== '') {
-      row.user_id = req.body.user_id;
-    }
-    if (req.body.project_id != null && req.body.project_id !== '') {
-      row.project_id = req.body.project_id;
-    }
-    if (req.body.max_steps != null) {
-      row.max_steps = req.body.max_steps;
-    }
-    if (req.body.auto_evaluate != null) {
-      row.auto_evaluate = req.body.auto_evaluate;
+    // Save to Supabase if configured (optional)
+    if (db) {
+      const now = new Date().toISOString();
+      const row: Record<string, unknown> = {
+        prompt,
+        scad_code: text,
+        model: useClaudeBackend ? 'claude-sonnet-4-6' : 'gemini-2.5-flash',
+        status: 'completed',
+        created_at: now,
+        completed_at: now,
+      };
+      if (req.body.user_id != null && req.body.user_id !== '') {
+        row.user_id = req.body.user_id;
+      }
+      if (req.body.project_id != null && req.body.project_id !== '') {
+        row.project_id = req.body.project_id;
+      }
+      if (req.body.max_steps != null) {
+        row.max_steps = req.body.max_steps;
+      }
+      if (req.body.auto_evaluate != null) {
+        row.auto_evaluate = req.body.auto_evaluate;
+      }
+
+      const { error: insertError } = await db.from('prompts').insert(row);
+      if (insertError) {
+        console.error('[prompts insert]', insertError);
+        // Don't fail the request — still return the generated code
+      }
     }
 
-    const { error: insertError } = await db.from('prompts').insert(row);
-    if (insertError) {
-      console.error('[prompts insert]', insertError);
-      const fkHint =
-        insertError.code === '23503'
-          ? 'Foreign key: use a `project_id` that already exists in `projects` (and a valid `user_id` if required). Or omit `project_id` / `user_id` in the request body if your table allows NULL for those columns.'
-          : insertError.hint;
-      res.status(500).json({
-        error: 'Failed to save prompt to database',
-        details: insertError.message,
-        code: insertError.code,
-        hint: fkHint,
-      });
-      return;
-    }
-
-    const stlOk = await writeOutputStlFromScad();
-    respondWithStlOrScad(res, text, stlOk);
+    const stlPath = await compileStl(text);
+    respondWithStlOrScad(res, text, stlPath);
   } catch (err) {
     next(err);
   }
