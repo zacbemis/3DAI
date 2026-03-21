@@ -1,6 +1,10 @@
 import landingBg from '../../assets/landing_page.jpg';
 
-export function LandingPage() {
+interface LandingPageProps {
+  onGetStarted: () => void;
+}
+
+export function LandingPage({ onGetStarted }: LandingPageProps) {
   return (
     <div
       className="flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-cover bg-center bg-no-repeat font-sans antialiased"
@@ -15,6 +19,7 @@ export function LandingPage() {
       <button
         type="button"
         className="cursor-pointer rounded-full border-0 bg-gradient-to-br from-[#646cff] to-[#9089ff] px-10 py-3.5 text-lg font-semibold text-white shadow-[0_10px_20px_rgba(100,108,255,0.3)] transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_15px_30px_rgba(100,108,255,0.5)] hover:brightness-110 active:translate-y-0"
+        onClick={onGetStarted}
       >
         Get Started
       </button>
