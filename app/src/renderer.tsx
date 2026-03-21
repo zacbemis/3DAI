@@ -10,6 +10,7 @@ if (container) {
     const root = createRoot(container);
     root.render(
         <React.StrictMode>
+            <LandingPage />
             <ChatArea />
         </React.StrictMode>
     );
