@@ -7,6 +7,7 @@ import {
   resolveOpenScadBinary,
   sanitizeScadSource,
 } from './openscadExport';
+import { isSupabaseConfigured } from './supabase';
 
 /** `__dirname` is `.../src` — put `stlfile` next to `package.json`, not inside `src/`. */
 const SERVICE_ROOT = path.resolve(__dirname, '..');
@@ -60,6 +61,16 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (_req, res) => {
   res.send('Hello World');
+});
+
+/** Health: Supabase connector configured (does not validate network). */
+app.get('/health/supabase', (_req, res) => {
+  res.json({
+    configured: isSupabaseConfigured(),
+    hint: isSupabaseConfigured()
+      ? 'Supabase client is ready (use getSupabase() in routes).'
+      : 'Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY in .env',
+  });
 });
 
 app.post('/generate', async (req, res, next) => {
@@ -120,6 +131,13 @@ const jsonBodyErrorHandler: ErrorRequestHandler = (err, _req, res, next) => {
 };
 
 app.use(jsonBodyErrorHandler);
+
+// Log Supabase status at startup (client is lazy-created on first getSupabase())
+if (isSupabaseConfigured()) {
+  console.log('Supabase: connected (URL + key configured)');
+} else {
+  console.log('Supabase: not configured (optional). Set SUPABASE_URL + key in .env');
+}
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');

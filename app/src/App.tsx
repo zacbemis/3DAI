@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { LandingPage } from './pages/landing_page/LandingPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import { LandingPage } from './pages/landing_page/LandingPage';
 import ResetPassword from './pages/ResetPassword/ResetPassword';
