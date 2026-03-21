@@ -1,0 +1,44 @@
+---
+description: Supabase client usage and database patterns
+globs: "services/**/*.ts,packages/**/*.ts"
+alwaysApply: false
+---
+
+# Supabase Patterns
+
+## Client Setup
+
+- API/worker services use the **service role** client (bypasses RLS) — never expose this key to the frontend
+- Frontend/Electron app uses the **anon key** client with user auth tokens — RLS enforces access control
+- Create one Supabase client instance per service, not per request
+
+## Queries
+
+- Always select only the columns you need — avoid `select('*')`
+- Check for errors from every Supabase call — the client does not throw, it returns `{ data, error }`
+
+```ts
+// ✅ Good
+const { data, error } = await supabase
+  .from('generations')
+  .select('id, prompt, status, created_at')
+  .eq('user_id', userId);
+
+if (error) throw new DatabaseError('Failed to list generations', { cause: error });
+
+// ❌ Bad — ignores errors
+const { data } = await supabase.from('generations').select('*');
+```
+
+## Storage
+
+- Bucket: `generation-assets` (private)
+- Path pattern: `users/{user_id}/generations/{generation_id}/step_{n}/{filename}`
+- Use signed URLs for frontend access — never make the bucket public
+- Set short TTL on signed URLs (5-15 minutes)
+
+## Migrations
+
+- One migration file per logical change in `infra/supabase/migrations/`
+- Never modify an existing migration that has been applied — create a new one
+- Test migrations against a branch database before applying to production

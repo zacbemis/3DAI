@@ -1,0 +1,44 @@
+---
+description: React + TypeScript component patterns
+globs: "**/*.tsx"
+alwaysApply: false
+---
+
+# React + TypeScript Patterns
+
+## Components
+
+- Functional components only — no class components
+- Define props as an `interface` named `{Component}Props`
+- Destructure props in the function signature
+- Colocate component, styles, and hooks in the same directory
+
+```tsx
+// ✅ Good
+interface GenerationCardProps {
+  generation: Generation;
+  onSelect: (id: string) => void;
+}
+
+export function GenerationCard({ generation, onSelect }: GenerationCardProps) {
+  return <div onClick={() => onSelect(generation.id)}>{generation.prompt}</div>;
+}
+```
+
+## Hooks
+
+- Extract reusable logic into custom hooks prefixed with `use`
+- Keep hooks focused — one concern per hook
+- Supabase queries should be wrapped in custom hooks, not called inline in components
+
+## State
+
+- Prefer local state (`useState`) for UI-only state
+- Use React context sparingly — only for truly global concerns (auth, theme)
+- Derive state from existing state instead of syncing with `useEffect`
+
+## Performance
+
+- Memoize expensive computations with `useMemo`
+- Wrap callback props with `useCallback` when passed to memoized children
+- Never create objects/arrays inline in JSX props for memoized components
