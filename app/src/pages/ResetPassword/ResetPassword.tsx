@@ -8,6 +8,8 @@ import {
   authPrimaryButtonClass,
 } from '../../components/auth/auth-layout';
 import { ErrorBanner, LoadingSpinner } from '../../components/feedback';
+import { validateEmail } from '../../lib/validation';
+import logo from '../../assets/logo_transparent.png';
 
 interface ResetPasswordProps {
   onBackToLogin: () => void;
@@ -25,11 +27,8 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ onBackToLogin }) => {
 
     setErrorMessage(null);
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setErrorMessage('Please enter a valid email (e.g., name@domain.com)');
-      return;
-    }
+    const emailErr = validateEmail(email);
+    if (emailErr) { setErrorMessage(emailErr); return; }
 
     setIsLoading(true);
 
@@ -67,7 +66,8 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ onBackToLogin }) => {
       <AuthCard>
         {!isSubmitted ? (
           <>
-            <div className="mb-8">
+            <div className="mb-8 flex flex-col items-center">
+              <img src={logo} alt="3DAI" className="mb-4 h-14 w-auto object-contain" />
               <h2 className="mb-3 text-[1.8rem] font-semibold leading-tight">Reset Password</h2>
               <p className="text-[0.9rem] leading-relaxed text-zinc-500">
                 Enter your email address and we&apos;ll send you a link to reset your password.
@@ -102,9 +102,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ onBackToLogin }) => {
           </>
         ) : (
           <div className="animate-page-fade-in px-0 py-5 text-center">
-            <div className="mx-auto mb-5 flex h-[60px] w-[60px] items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/15 text-2xl text-indigo-400">
-              <span>✓</span>
-            </div>
+            <img src={logo} alt="3DAI" className="mx-auto mb-4 h-14 w-auto object-contain" />
             <h2 className="mb-2.5 text-[1.8rem] font-semibold">Check your email</h2>
             <p className="mb-8 text-[0.95rem] text-zinc-500">
               If an account exists for <br />

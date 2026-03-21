@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx tsx --test src/__tests__/stlCache.test.ts",
-    "start": "ts-node src/index.ts"
+    "start": "npx tsx src/index.ts"
   },
   "keywords": [],
   "author": "",

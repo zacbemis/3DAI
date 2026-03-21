@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
+import logo from '../../assets/logo_transparent.png';
 
 interface NavbarProps {
   onLoginClick: () => void;
@@ -16,9 +17,7 @@ export default function Navbar({ onLoginClick, onChatClick, onLogout }: NavbarPr
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50 flex h-[70px] items-center justify-between border-b border-white/10 bg-white/[0.03] px-[5%] backdrop-blur-lg">
-      <span className="text-2xl font-extrabold tracking-tight text-white">
-        3DAI
-      </span>
+      <img src={logo} alt="3DAI" className="h-11 w-auto shrink-0 object-contain" />
       <div className="flex items-center gap-3">
         {isAuthenticated ? (
           <>

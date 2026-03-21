@@ -8,6 +8,9 @@ import {
   authPrimaryButtonClass,
 } from '../../components/auth/auth-layout';
 import { ErrorBanner, LoadingSpinner } from '../../components/feedback';
+import { PasswordRequirements } from '../../components/auth/PasswordRequirements';
+import { validatePassword } from '../../lib/validation';
+import logo from '../../assets/logo_transparent.png';
 
 const UpdatePassword = ({ onComplete }: { onComplete: () => void }) => {
   const [newPassword, setNewPassword] = useState('');
@@ -17,6 +20,11 @@ const UpdatePassword = ({ onComplete }: { onComplete: () => void }) => {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    const pwErr = validatePassword(newPassword);
+    if (pwErr) { setError(pwErr); return; }
+
     if (newPassword !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -40,7 +48,8 @@ const UpdatePassword = ({ onComplete }: { onComplete: () => void }) => {
   return (
     <AuthPageShell>
       <AuthCard>
-        <div className="mb-8">
+        <div className="mb-8 flex flex-col items-center">
+          <img src={logo} alt="3DAI" className="mb-4 h-14 w-auto object-contain" />
           <h2 className="mb-2 text-[1.8rem] font-semibold leading-tight">
             Create New Password
           </h2>
@@ -60,8 +69,8 @@ const UpdatePassword = ({ onComplete }: { onComplete: () => void }) => {
               onChange={(e) => setNewPassword(e.target.value)}
               className={authFieldInputClass}
               required
-              minLength={6}
             />
+            <PasswordRequirements password={newPassword} />
           </div>
           <div className="flex flex-col gap-2">
             <label className={authFieldLabelClass}>Confirm New Password</label>
@@ -71,8 +80,10 @@ const UpdatePassword = ({ onComplete }: { onComplete: () => void }) => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className={authFieldInputClass}
               required
-              minLength={6}
             />
+            {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+              <span className="text-xs text-red-400">Passwords do not match</span>
+            )}
           </div>
           <button
             type="submit"

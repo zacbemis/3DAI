@@ -1,5 +1,6 @@
 import Navbar from '../../components/nav_bar/nav_bar';
 import landingBg from '../../assets/higher_res_bg.png';
+import logo from '../../assets/logo_transparent.png';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -40,10 +41,11 @@ export function LandingPage({
 
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 pb-16 pt-[5.5rem] sm:px-8">
         <div className="mx-auto flex w-full max-w-3xl flex-col items-center text-center">
-          <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 backdrop-blur-md sm:text-xs">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]" />
-            3D · AI · Workspace
-          </p>
+          <img
+            src={logo}
+            alt="3DAI"
+            className="h-28 w-auto object-contain sm:h-36 md:h-44"
+          />
 
           <h1 className="mt-5 text-balance text-4xl font-extrabold tracking-tight text-white sm:mt-6 sm:text-6xl sm:leading-[1.05] md:text-7xl">
             Design and iterate with{' '}
