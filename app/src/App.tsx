@@ -19,20 +19,19 @@ type View =
   | 'chat';
 
 function AppRoutes() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
   const [view, setView] = useState<View>('landing');
   const pendingView = useRef<View | null>(null);
   const sessionRestored = useRef(false);
 
-  // If the user already has a session on startup, skip landing and go to chat
   useEffect(() => {
-    if (!isLoading && !sessionRestored.current) {
+    if (!isInitializing && !sessionRestored.current) {
       sessionRestored.current = true;
       if (isAuthenticated) {
         setView('chat');
       }
     }
-  }, [isLoading, isAuthenticated]);
+  }, [isInitializing, isAuthenticated]);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -70,7 +69,7 @@ function AppRoutes() {
     setView('landing');
   }, []);
 
-  if (isLoading) {
+  if (isInitializing) {
     return <LoadingScreen />;
   }
 
