@@ -1,4 +1,4 @@
-.login-container {
+.signup-container {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -6,6 +6,8 @@
     background: radial-gradient(circle at top right, #1a1a2e, #0a0a0c);
     position: relative;
     padding: 20px;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: white;
 }
 
 /* Back Button */
@@ -19,6 +21,7 @@
     font-size: 1rem;
     cursor: pointer;
     transition: color 0.2s;
+    z-index: 10;
 }
 
 .back-arrow:hover {
@@ -26,33 +29,45 @@
 }
 
 /* Card Styling */
-.login-card {
+.signup-card {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 40px;
     border-radius: 20px;
     width: 100%;
-    max-width: 400px;
+    max-width: 460px; /* Slightly wider than login for the name row */
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
-.login-header h2 {
+.signup-header h2 {
     font-size: 1.8rem;
     margin-bottom: 8px;
+    margin-top: 0;
 }
 
-.login-header p {
+.signup-header p {
     color: #888;
     font-size: 0.9rem;
     margin-bottom: 30px;
 }
 
 /* Form Styling */
-.login-form {
+.signup-form {
     display: flex;
     flex-direction: column;
     gap: 20px;
+}
+
+/* Name Row (First + Last) */
+.name-row {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+
+.name-row .input-field {
+    flex: 1;
 }
 
 .input-field {
@@ -64,6 +79,7 @@
 .input-field label {
     font-size: 0.85rem;
     color: #ccc;
+    font-weight: 500;
 }
 
 .input-field input {
@@ -73,6 +89,7 @@
     border-radius: 8px;
     color: white;
     outline: none;
+    font-size: 1rem;
     transition: border 0.3s;
 }
 
@@ -81,25 +98,26 @@
 }
 
 /* Main Action Button */
-.login-main-btn {
+.signup-main-btn {
     background: #4a90e2;
     color: white;
     border: none;
     padding: 14px;
     border-radius: 8px;
     font-weight: 600;
+    font-size: 1rem;
     cursor: pointer;
     margin-top: 10px;
-    transition: transform 0.2s, back ground 0.2s;
+    transition: transform 0.2s, backg round 0.2s;
 }
 
-.login-main-btn:hover {
+.signup-main-btn:hover {
     background: #357abd;
     transform: translateY(-2px);
 }
 
 /* Footer Link */
-.login-footer {
+.signup-footer {
     margin-top: 25px;
     text-align: center;
     font-size: 0.9rem;
@@ -114,4 +132,9 @@
 
 .link-text:hover {
     text-decoration: underline;
+}
+
+/* Ensure the fade-in animation works (defined in App.css) */
+.page-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
 }

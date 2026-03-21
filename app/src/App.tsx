@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import LandingPage from './pages/landing_page/LandingPage';
 import LoginPage from './pages/LoginPage/LoginPage';
+import SignupPage from './pages/SignupPage/SignupPage';
 import ChatArea from './components/chat_area/chat_area';
 import './App.css';
 
 const App: React.FC = () => {
-    const [view, setView] = useState<'landing' | 'login' | 'chat'>('landing');
+    const [view, setView] = useState<'landing' | 'login' | 'chat' | 'signup'>('landing');
 
     return (
         <div className="app-viewport">
@@ -15,8 +16,15 @@ const App: React.FC = () => {
             
             {view === 'login' && (
                 <LoginPage 
-                    onBackClick={() => setView('landing')} 
+                    onSignupClick={() => setView('signup')} 
                     onLoginSuccess={() => setView('chat')} 
+                />
+            )}
+
+            {view === 'signup' && (
+                <SignupPage 
+                    onSignupSuccess={() => setView('login')} 
+                    onBackToLogin={() => setView('login')} 
                 />
             )}
 
