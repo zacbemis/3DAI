@@ -1,18 +1,39 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import LoginPage from './pages/LoginPage/LoginPage';
-import { LandingPage } from './pages/landing_page/LandingPage';
+import { LandingPage } from './pages/LandingPage/LandingPage';
 import ResetPassword from './pages/ResetPassword/ResetPassword';
 import SignupPage from './pages/SignupPage/SignupPage';
+import UpdatePassword from './pages/UpdatePassword/UpdatePassword';
 import { ChatPage } from './pages/chat/ChatPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { getSupabaseClient } from './lib/supabaseClient';
+import type { AuthChangeEvent } from '@supabase/supabase-js';
 import './App.css';
 
-type View = 'landing' | 'login' | 'signup' | 'resetpassword' | 'chat';
+type View =
+  | 'landing'
+  | 'login'
+  | 'signup'
+  | 'resetpassword'
+  | 'updatepassword'
+  | 'chat';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
   const [view, setView] = useState<View>('landing');
   const pendingView = useRef<View | null>(null);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setView('updatepassword');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const navigateTo = useCallback(
     (target: View) => {
@@ -65,6 +86,10 @@ function AppRoutes() {
 
       {view === 'resetpassword' && (
         <ResetPassword onBackToLogin={() => navigateTo('login')} />
+      )}
+
+      {view === 'updatepassword' && (
+        <UpdatePassword onComplete={() => navigateTo('login')} />
       )}
 
       {view === 'chat' && (isAuthenticated ? <ChatPage /> : null)}
