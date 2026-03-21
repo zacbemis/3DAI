@@ -11,8 +11,13 @@
     "outDir": "dist",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "jsx": "react-jsx",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+    "types": ["node", "vite/client"],
+  
+    "jsx": "react-jsx"
+
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "*.ts"]
+  "include": [
+    "src", 
+    "vite.renderer.config.ts" 
+  ]
 }

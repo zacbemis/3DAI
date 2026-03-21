@@ -11,11 +11,14 @@ import { getSupabase, isSupabaseConfigured } from './supabase';
 
 /** Public table for `GET /users`. Override with `SUPABASE_USER_TABLE` — your project has `prompts`, not `profiles`. */
 const USER_TABLE = process.env.SUPABASE_USER_TABLE?.trim() || 'users';
+import { StlCache } from './stlCache';
 
 /** `__dirname` is `.../src` — put `stlfile` next to `package.json`, not inside `src/`. */
 const SERVICE_ROOT = path.resolve(__dirname, '..');
 const OUTPUT_SCAD_PATH = path.join(SERVICE_ROOT, 'stlfile', 'output.scad');
 const OUTPUT_STL_PATH = path.join(SERVICE_ROOT, 'stlfile', 'output.stl');
+
+const stlCache = new StlCache();
 
 /** Strips markdown fences from model output, then writes `output.scad`. */
 function writeOutputScad(contents: string): string {
@@ -25,25 +28,35 @@ function writeOutputScad(contents: string): string {
   return clean;
 }
 
-/** Writes `output.stl` next to `output.scad` via OpenSCAD CLI (must be installed). */
-async function writeOutputStlFromScad(): Promise<boolean> {
-  const result = await exportScadToStl(OUTPUT_SCAD_PATH, OUTPUT_STL_PATH);
-  if (result.ok) {
-    console.log('Wrote STL:', result.stlPath);
-    return true;
+/**
+ * Compile SCAD → STL, using the local cache when possible.
+ * Returns the absolute path to the STL on success, or `null` on failure.
+ */
+async function compileStl(scadText: string): Promise<string | null> {
+  const cached = stlCache.lookup(scadText);
+  if (cached) {
+    console.log('[stl-cache] HIT — serving from cache');
+    return cached;
   }
-  console.warn('[STL export skipped]', result.message);
-  return false;
+
+  const result = await exportScadToStl(OUTPUT_SCAD_PATH, OUTPUT_STL_PATH);
+  if (!result.ok) {
+    console.warn('[STL export skipped]', result.message);
+    return null;
+  }
+
+  const cachedPath = stlCache.store(scadText, result.stlPath);
+  console.log('[stl-cache] MISS — compiled and cached at', cachedPath);
+  return cachedPath;
 }
 
 /** POST response: binary STL when export succeeds, otherwise `.scad` source as text. */
-function respondWithStlOrScad(res: Response, scadText: string, stlOk: boolean): void {
-  const abs = path.resolve(OUTPUT_STL_PATH);
-  if (stlOk && existsSync(abs)) {
+function respondWithStlOrScad(res: Response, scadText: string, stlPath: string | null): void {
+  if (stlPath && existsSync(stlPath)) {
     res.setHeader('Content-Type', 'model/stl');
     res.setHeader('Content-Disposition', 'attachment; filename="output.stl"');
     res.setHeader('X-Generated-Format', 'stl');
-    res.sendFile(abs, (err) => {
+    res.sendFile(path.resolve(stlPath), (err) => {
       if (err && !res.headersSent) {
         res.removeHeader('X-Generated-Format');
         res.type('text/plain').send(scadText);
@@ -403,8 +416,8 @@ app.post('/modify', async (req, res, next) => {
       }
       const raw = await modifyText(original, prompt);
       const text = writeOutputScad(raw);
-      const stlOk = await writeOutputStlFromScad();
-      respondWithStlOrScad(res, text, stlOk);
+      const stlPath = await compileStl(text);
+      respondWithStlOrScad(res, text, stlPath);
     } catch (err) {
       next(err);
     }
@@ -439,6 +452,7 @@ app.listen(3000, () => {
     'OpenSCAD binary (set OPENSCAD_PATH in .env if not found):',
     resolveOpenScadBinary(),
   );
+  console.log(`STL cache: ${stlCache.size()} entries (30-day TTL, hourly cleanup)`);
   console.log('POST /generate & /modify return STL when export succeeds (see X-Generated-Format).');
   console.log('POST /projects — create project (user_id, name, …)');
   console.log('GET /projects/:projectId/prompts — list prompts for a project');
