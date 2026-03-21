@@ -1,43 +1,34 @@
 -- 001_initial_schema.sql
--- Initial database schema for 3DAI
+-- 3DAI database schema: users, projects, prompts
 
 -- ---------------------------------------------------------------------------
 -- Enums
 -- ---------------------------------------------------------------------------
 
-create type generation_status as enum (
+create type prompt_status as enum (
   'queued',
   'running',
-  'awaiting_review',
   'completed',
   'failed',
   'cancelled'
 );
 
-create type step_status as enum (
-  'running',
-  'completed',
-  'failed'
-);
-
-create type asset_kind as enum (
-  'render',
-  'grid',
-  'thumbnail'
-);
-
 -- ---------------------------------------------------------------------------
--- profiles — synced from auth.users via trigger
+-- users — synced from auth.users via trigger
 -- ---------------------------------------------------------------------------
 
-create table profiles (
-  id          uuid primary key references auth.users (id) on delete cascade,
-  email       text not null,
+create table users (
+  id           uuid primary key references auth.users (id) on delete cascade,
+  email        text not null,
   display_name text,
-  avatar_url  text,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  avatar_url   text,
+  defaults     jsonb not null default '{}',
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
 );
+
+comment on column users.defaults is
+  'User-level defaults: model, max_steps, auto_evaluate, style hints';
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -45,7 +36,7 @@ language plpgsql
 security definer set search_path = ''
 as $$
 begin
-  insert into public.profiles (id, email, display_name, avatar_url)
+  insert into public.users (id, email, display_name, avatar_url)
   values (
     new.id,
     new.email,
@@ -61,106 +52,57 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 -- ---------------------------------------------------------------------------
--- projects — optional folders to organise generations
+-- projects — owned by a user, groups related prompts
 -- ---------------------------------------------------------------------------
 
 create table projects (
   id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references profiles (id) on delete cascade,
+  user_id     uuid not null references users (id) on delete cascade,
   name        text not null,
   description text,
+  config      jsonb not null default '{}',
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
 
+comment on column projects.config is
+  'Project-level overrides: model, max_steps, auto_evaluate';
+
 create index idx_projects_user on projects (user_id);
 
 -- ---------------------------------------------------------------------------
--- generations — one row per prompt submission
+-- prompts — one row per user prompt, stores final result
 -- ---------------------------------------------------------------------------
 
-create table generations (
-  id            uuid primary key default gen_random_uuid(),
-  user_id       uuid not null references profiles (id) on delete cascade,
-  project_id    uuid references projects (id) on delete set null,
-  prompt        text not null,
-  status        generation_status not null default 'queued',
-  model         text not null,
+create table prompts (
+  id           uuid primary key default gen_random_uuid(),
+  project_id   uuid not null references projects (id) on delete cascade,
+  user_id      uuid not null references users (id) on delete cascade,
+  prompt       text not null,
+  scad_code    text,
+  status       prompt_status not null default 'queued',
+  score        numeric,
+  error        text,
+  model        text not null,
   auto_evaluate boolean not null default true,
-  max_steps     int not null default 5,
-  final_score   numeric,
-  error         text,
-  created_at    timestamptz not null default now(),
-  completed_at  timestamptz
+  max_steps    int not null default 5 check (max_steps between 1 and 20),
+  created_at   timestamptz not null default now(),
+  completed_at timestamptz,
+
+  constraint chk_score_range check (score is null or score between 0 and 10)
 );
 
-create index idx_generations_user    on generations (user_id);
-create index idx_generations_project on generations (project_id);
-create index idx_generations_status  on generations (status);
+comment on column prompts.scad_code is
+  'Final/best OpenSCAD code produced by the generation loop. Null while generating.';
+comment on column prompts.score is
+  'Final vision-model score (null if auto_evaluate was off or generation failed).';
+comment on column prompts.user_id is
+  'Denormalised from projects for RLS and simpler queries.';
 
--- ---------------------------------------------------------------------------
--- steps — each LLM → compile → evaluate cycle
--- ---------------------------------------------------------------------------
-
-create table steps (
-  id            uuid primary key default gen_random_uuid(),
-  generation_id uuid not null references generations (id) on delete cascade,
-  step_number   int not null,
-  status        step_status not null default 'running',
-  scad_code     text not null,
-  score         numeric,
-  feedback      jsonb,
-  user_feedback text,
-  error         text,
-  duration_ms   int,
-  created_at    timestamptz not null default now(),
-  completed_at  timestamptz,
-
-  constraint uq_step_per_generation unique (generation_id, step_number)
-);
-
-create index idx_steps_generation on steps (generation_id);
-
--- ---------------------------------------------------------------------------
--- assets — every file produced during generation
--- ---------------------------------------------------------------------------
-
-create table assets (
-  id            uuid primary key default gen_random_uuid(),
-  generation_id uuid not null references generations (id) on delete cascade,
-  step_id       uuid references steps (id) on delete set null,
-  kind          asset_kind not null,
-  storage_path  text not null,
-  file_name     text not null,
-  mime_type     text not null,
-  size_bytes    bigint,
-  metadata      jsonb,
-  created_at    timestamptz not null default now()
-);
-
-create index idx_assets_generation on assets (generation_id);
-create index idx_assets_step       on assets (step_id);
-create index idx_assets_kind       on assets (kind);
-
--- ---------------------------------------------------------------------------
--- presets — saved user configuration defaults
--- ---------------------------------------------------------------------------
-
-create table presets (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null references profiles (id) on delete cascade,
-  name       text not null,
-  config     jsonb not null default '{}',
-  is_default boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create index idx_presets_user on presets (user_id);
-
--- Ensure at most one default preset per user
-create unique index uq_presets_default_per_user
-  on presets (user_id) where (is_default = true);
+create index idx_prompts_project on prompts (project_id);
+create index idx_prompts_user    on prompts (user_id);
+create index idx_prompts_status  on prompts (status);
+create index idx_prompts_created on prompts (project_id, created_at desc);
 
 -- ---------------------------------------------------------------------------
 -- updated_at auto-refresh
@@ -176,14 +118,10 @@ begin
 end;
 $$;
 
-create trigger trg_profiles_updated_at
-  before update on profiles
+create trigger trg_users_updated_at
+  before update on users
   for each row execute function public.set_updated_at();
 
 create trigger trg_projects_updated_at
   before update on projects
-  for each row execute function public.set_updated_at();
-
-create trigger trg_presets_updated_at
-  before update on presets
   for each row execute function public.set_updated_at();
