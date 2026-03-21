@@ -1,46 +1,43 @@
 import { useState } from 'react';
-import { LandingPage } from './pages/landing_page/LandingPage';
 import LoginPage from './pages/LoginPage/LoginPage';
-import SignupPage from './pages/SignupPage/SignupPage';
+import { LandingPage } from './pages/landing_page/LandingPage';
 import ResetPassword from './pages/ResetPassword/ResetPassword';
-import ChatArea from './components/chat_area/chat_area';
+import SignupPage from './pages/SignupPage/SignupPage';
+import { ChatPage } from './pages/chat/ChatPage';
 import './App.css';
 
-const App: React.FC = () => {
-    const [view, setView] = useState<'landing' | 'login' | 'chat' | 'signup' | 'resetpassword'>('landing');
+type View = 'landing' | 'login' | 'signup' | 'resetpassword' | 'chat';
 
-    return (
-        <div className="app-viewport">
-            {view === 'landing' && (
-                <LandingPage onLoginClick={() => setView('login')} />
-            )}
-            
-            {view === 'login' && (
-                <LoginPage 
-                    onSignupClick={() => setView('signup')} 
-                    onLoginSuccess={() => setView('chat')} 
-                    onForgotPasswordClick={() => setView('resetpassword')}
-                />
-            )}
+export function App() {
+  const [view, setView] = useState<View>('landing');
 
   return (
     <div className="app-viewport">
       {view === 'landing' && (
-        <LandingPage onLoginClick={() => setView('login')} onChatClick={() => setView('chat')} />
+        <LandingPage
+          onLoginClick={() => setView('login')}
+          onChatClick={() => setView('chat')}
+        />
       )}
 
-            {view === 'resetpassword' && (
-                <ResetPassword
-                onBackToLogin={() => setView('login')} 
-                />
-            )}
+      {view === 'login' && (
+        <LoginPage
+          onSignupClick={() => setView('signup')}
+          onLoginSuccess={() => setView('chat')}
+          onForgotPasswordClick={() => setView('resetpassword')}
+        />
+      )}
 
-            {view === 'chat' && (
-                <ChatArea />
-            )}
-        </div>
-    );
-};
+      {view === 'signup' && (
+        <SignupPage
+          onBackToLogin={() => setView('login')}
+          onSignupSuccess={() => setView('login')}
+        />
+      )}
+
+      {view === 'resetpassword' && (
+        <ResetPassword onBackToLogin={() => setView('login')} />
+      )}
 
       {view === 'chat' && <ChatPage />}
     </div>
