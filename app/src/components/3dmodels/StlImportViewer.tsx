@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { generateMeshComponentTsx } from '../../generateMeshComponent.js';
+import { generateMeshComponentTsx } from '../../generateMeshComponent';
 
 const electronAPI = (
   window as unknown as {
