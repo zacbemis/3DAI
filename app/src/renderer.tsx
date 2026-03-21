@@ -5,7 +5,7 @@ import './index.css';
 
 const el = document.getElementById('app');
 if (!el) {
-  throw new Error('Missing #root element');
+  throw new Error('Missing #app element');
 }
 
 createRoot(el).render(

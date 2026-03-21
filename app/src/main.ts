@@ -1,32 +1,33 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import started from 'electron-squirrel-startup';
 
-// 1. Recreate __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Handle creating/removing shortcuts on Windows.
 if (started) {
   app.quit();
 }
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
-    width: 1200, // Increased for your 3DAI tools
+    width: 1200,
     height: 800,
+    autoHideMenuBar: true,
     webPreferences: {
-      // 2. Ensure the path to preload is correct for the build structure
-      preload: path.join(__dirname, 'preload.js'), 
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
 
-  // 3. Use the Vite global variables provided by Forge
-  // Note: These are injected by the Forge Vite plugin at build time
-  if (typeof MAIN_WINDOW_VITE_DEV_SERVER_URL !== 'undefined') {
+  Menu.setApplicationMenu(null);
+
+  if (
+    typeof MAIN_WINDOW_VITE_DEV_SERVER_URL !== 'undefined' &&
+    MAIN_WINDOW_VITE_DEV_SERVER_URL
+  ) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
     mainWindow.loadFile(

@@ -1,70 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import SignupPage from './pages/SignupPage/SignupPage';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import LoginPage from './pages/LoginPage/LoginPage';
 import { LandingPage } from './pages/LandingPage/LandingPage';
 import ResetPassword from './pages/ResetPassword/ResetPassword';
-import UpdatePassword from './pages/UpdatePassword/UpdatePassword'; 
-import ChatArea from './components/chat_area/chat_area';
-import { getSupabaseClient } from './lib/supabaseClient'; 
+import SignupPage from './pages/SignupPage/SignupPage';
+import UpdatePassword from './pages/UpdatePassword/UpdatePassword';
+import { ChatPage } from './pages/chat/ChatPage';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { getSupabaseClient } from './lib/supabaseClient';
+import type { AuthChangeEvent } from '@supabase/supabase-js';
 import './App.css';
 
-export const App: React.FC = () => {
-    console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
+type View =
+  | 'landing'
+  | 'login'
+  | 'signup'
+  | 'resetpassword'
+  | 'updatepassword'
+  | 'chat';
 
-    const [view, setView] = useState<'landing' | 'login' | 'chat' | 'signup' | 'forgotpassword' | 'updatepassword'>('landing');
+function AppRoutes() {
+  const { isAuthenticated } = useAuth();
+  const [view, setView] = useState<View>('landing');
+  const pendingView = useRef<View | null>(null);
 
-    useEffect(() => {
-        const supabase = getSupabaseClient();
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setView('updatepassword');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'PASSWORD_RECOVERY') {
-                console.log("Password recovery link clicked! Switching view...");
-                setView('updatepassword');
-            }
-        });
+  const navigateTo = useCallback(
+    (target: View) => {
+      const protectedViews: View[] = ['chat'];
+      if (protectedViews.includes(target) && !isAuthenticated) {
+        pendingView.current = target;
+        setView('login');
+        return;
+      }
+      pendingView.current = null;
+      setView(target);
+    },
+    [isAuthenticated],
+  );
 
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, []);
+  const onLoginSuccess = useCallback(() => {
+    const dest = pendingView.current ?? 'chat';
+    pendingView.current = null;
+    setView(dest);
+  }, []);
+
+  const onLogout = useCallback(() => {
+    setView('landing');
+  }, []);
 
   return (
     <div className="app-viewport">
       {view === 'landing' && (
         <LandingPage
-          onLoginClick={() => setView('login')}
-          onChatClick={() => setView('chat')}
+          onLoginClick={() => navigateTo('login')}
+          onChatClick={() => navigateTo('chat')}
+          onLogout={onLogout}
         />
       )}
 
       {view === 'login' && (
         <LoginPage
-          onSignupClick={() => setView('signup')}
-          onLoginSuccess={() => setView('chat')}
-          onForgotPasswordClick={() => setView('resetpassword')}
+          onSignupClick={() => navigateTo('signup')}
+          onLoginSuccess={onLoginSuccess}
+          onForgotPasswordClick={() => navigateTo('resetpassword')}
         />
       )}
 
       {view === 'signup' && (
         <SignupPage
-          onBackToLogin={() => setView('login')}
-          onSignupSuccess={() => setView('login')}
+          onBackToLogin={() => navigateTo('login')}
+          onSignupSuccess={onLoginSuccess}
         />
       )}
 
-            {view === 'forgotpassword' && (
-                <ResetPassword
-                    onBackToLogin={() => setView('login')} 
-                />
-            )}
+      {view === 'resetpassword' && (
+        <ResetPassword onBackToLogin={() => navigateTo('login')} />
+      )}
 
-            {view === 'updatepassword' && (
-                <UpdatePassword 
-                    onComplete={() => setView('login')} 
-                />
-            )}
+      {view === 'updatepassword' && (
+        <UpdatePassword onComplete={() => navigateTo('login')} />
+      )}
 
+      {view === 'chat' && (isAuthenticated ? <ChatPage /> : null)}
     </div>
   );
 }
 
+export function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  );
+}
