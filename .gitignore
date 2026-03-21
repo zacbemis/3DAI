@@ -1,0 +1,7 @@
+
+# Training pipeline
+training/archive/
+training/recommendations.md
+training/next-batch.txt
+training/scorecard.json
+.DS_Store

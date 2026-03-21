@@ -1,0 +1,804 @@
+{
+  "baselines": [
+    {
+      "prompt": "a vase with a wide belly and flared rim",
+      "expectedTechniques": [
+        "Bezier Profile Revolution",
+        "Foot and Base Design"
+      ],
+      "minScore": 9,
+      "approvedDate": "2026-03-21",
+      "objectName": "vase"
+    },
+    {
+      "prompt": "a chess rook with crenellations on top",
+      "expectedTechniques": [
+        "Bezier Profile Revolution",
+        "CSG Detail Cutting",
+        "Hybrid Revolution + CSG"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "chess rook"
+    },
+    {
+      "prompt": "a spur gear with 20 teeth",
+      "expectedTechniques": [
+        "CSG Detail Cutting",
+        "Radial Tooth Addition"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "spur gear"
+    },
+    {
+      "prompt": "a hex nut with chamfered edges",
+      "expectedTechniques": [
+        "Hex Prism Chamfer via Cone Intersection"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "hex nut"
+    },
+    {
+      "prompt": "an L-shaped shelf bracket with screw holes",
+      "expectedTechniques": [
+        "CSG Bracket Assembly"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "shelf bracket"
+    },
+    {
+      "prompt": "a box enclosure 60x40x25mm with a removable lid",
+      "expectedTechniques": [
+        "Box/Enclosure Assembly"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "box enclosure"
+    },
+    {
+      "prompt": "a spoon with a rounded bowl and tapered handle",
+      "expectedTechniques": [
+        "Bezier Profile Revolution",
+        "Foot and Base Design",
+        "Smooth Curves via Math",
+        "Hull Chain Composition",
+        "Hull-Sphere Path Handle"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-20",
+      "objectName": "spoon"
+    },
+    {
+      "prompt": "a phone stand that holds a phone at 60 degrees",
+      "expectedTechniques": [
+        "Foot and Base Design",
+        "Angled Cradle Assembly"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "phone stand"
+    },
+    {
+      "prompt": "a small bookshelf with two shelves",
+      "expectedTechniques": [
+        "CSG Furniture Assembly"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "bookshelf"
+    },
+    {
+      "prompt": "a coffee cup with a handle",
+      "expectedTechniques": [
+        "Bezier Profile Revolution",
+        "Foot and Base Design",
+        "Hull Chain Composition",
+        "Hull-Sphere Path Handle"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "coffee cup"
+    },
+    {
+      "prompt": "a knurled knob for a machine",
+      "expectedTechniques": [
+        "Additive Diamond Knurl"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-20",
+      "objectName": "knurled knob"
+    },
+    {
+      "prompt": "a desk organizer with 3 compartments",
+      "expectedTechniques": [
+        "Stepped CSG Tray with Internal Dividers"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "desk organizer"
+    },
+    {
+      "prompt": "a twist vase with wavy walls",
+      "expectedTechniques": [
+        "Bezier Profile Revolution",
+        "Foot and Base Design",
+        "Twisted Wavy Extrusion"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "twist vase"
+    },
+    {
+      "prompt": "a cable clip that snaps onto a desk edge and holds 3 cables",
+      "expectedTechniques": [
+        "C-Clamp with Snap-In Channels"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Cable Clip (Desk Edge Mount, 3 Cables)"
+    },
+    {
+      "prompt": "a coaster with a honeycomb hex grid pattern and a solid border ring",
+      "expectedTechniques": [
+        "Hex Grid Lattice with Circular Clip"
+      ],
+      "minScore": 9,
+      "approvedDate": "2026-03-21",
+      "objectName": "Honeycomb Coaster"
+    },
+    {
+      "prompt": "a cabinet drawer pull with an arched handle and two screw holes",
+      "expectedTechniques": [
+        "Hull-Sphere Arch Bridge"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Cabinet Drawer Pull"
+    },
+    {
+      "prompt": "a 5-lobe star knob with a threaded insert hole in the center",
+      "expectedTechniques": [
+        "Polar Cosine Star Profile"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "5-Lobe Star Knob"
+    },
+    {
+      "prompt": "a kitchen funnel with a wide mouth and narrow spout",
+      "expectedTechniques": [
+        "Conical Revolution with Quadratic Spout Blend"
+      ],
+      "minScore": 9,
+      "approvedDate": "2026-03-21",
+      "objectName": "Kitchen Funnel"
+    },
+    {
+      "prompt": "an ice cube tray with a 4x3 grid of rounded cube cavities",
+      "expectedTechniques": [
+        "Grid Cavity Tray with Rounded Cube Pockets"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Ice Cube Tray with 4x3 Grid of Rounded Cube Cavities"
+    },
+    {
+      "prompt": "a napkin ring with a repeating diamond cutout pattern around the band",
+      "expectedTechniques": [
+        "Radial Diamond Band Cutout"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Napkin Ring with Diamond Cutout Pattern"
+    },
+    {
+      "prompt": "a pegboard panel 150x100mm with a 6x4 grid of 6mm holes and mounting holes in the corners",
+      "expectedTechniques": [
+        "Flat Panel with Hole Grid"
+      ],
+      "minScore": 9,
+      "approvedDate": "2026-03-21",
+      "objectName": "Pegboard Panel"
+    },
+    {
+      "prompt": "a bottle cap with knurled grip on the outside and a helical thread on the inside",
+      "expectedTechniques": [
+        "Threaded Bottle Cap"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Bottle Cap with Knurled Grip and Internal Thread"
+    },
+    {
+      "prompt": "a commemorative coin 40mm diameter with a raised star on one face and raised text around the rim",
+      "expectedTechniques": [],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Commemorative Coin"
+    },
+    {
+      "prompt": "a compression spring with 8 coils, 20mm outer diameter, 40mm tall",
+      "expectedTechniques": [],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Compression Spring"
+    },
+    {
+      "prompt": "a wall-mounted coat hook with a rounded hook and a flat mounting plate with two screw holes",
+      "expectedTechniques": [
+        "Hull-Chain J-Hook with Mounting Plate"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Wall-Mounted Coat Hook"
+    },
+    {
+      "prompt": "a cylindrical candle holder with a repeating teardrop cutout pattern around the sides",
+      "expectedTechniques": [
+        "Radial Teardrop Cutout Pattern"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Cylindrical Candle Holder with Teardrop Cutouts"
+    },
+    {
+      "prompt": "a door stop wedge with a grip handle on top",
+      "expectedTechniques": [
+        "CSG Wedge with Arch Handle"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Door Stop Wedge with Grip Handle"
+    },
+    {
+      "prompt": "a pen body with a tapered tip, pocket clip, and cap",
+      "expectedTechniques": [
+        "Elongated CSG Assembly with Arched Clip"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Pen Body with Tapered Tip, Pocket Clip, and Cap"
+    },
+    {
+      "prompt": "a stackable storage bin with interlocking lip and groove so bins nest securely",
+      "expectedTechniques": [
+        "Lip-and-Groove Stacking Interface"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Stackable Storage Bin with Interlocking Lip and Groove"
+    },
+    {
+      "prompt": "a guitar pick with a rounded triangle shape, 1mm thick tapering to 0.5mm at the tip",
+      "expectedTechniques": [
+        "Hull-of-Scaled-Spheres for Flat Objects"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Guitar Pick"
+    },
+    {
+      "prompt": "a plant pot with drainage holes and a matching saucer displayed side by side",
+      "expectedTechniques": [
+        "Side-by-Side Paired Vessels"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Plant Pot with Drainage Holes and Matching Saucer"
+    },
+    {
+      "prompt": "a rain gutter section 100mm long with a U-profile and mounting lip on each side",
+      "expectedTechniques": [
+        "Linear Extrude Profile Channel"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Rain Gutter Section"
+    },
+    {
+      "prompt": "a soap dish with drainage slots in the bottom and raised edges",
+      "expectedTechniques": [
+        "Rounded Tray with Through-Slots"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Soap Dish with Drainage Slots"
+    },
+    {
+      "prompt": "an AA battery holder for 4 batteries in a 2x2 grid with spring contact slots",
+      "expectedTechniques": [
+        "Cylindrical Well Grid with Contact Slots"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "AA Battery Holder (2x2 Grid with Spring Contact Slots)"
+    },
+    {
+      "prompt": "an ergonomic lever door handle with a curved grip and a square spindle hole",
+      "expectedTechniques": [
+        "Hull-Chain Lever Handle"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Ergonomic Lever Door Handle"
+    },
+    {
+      "prompt": "a bottle opener with a flat profile and leverage cutout",
+      "expectedTechniques": [
+        "Crescent-Hook Flat Tool"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Bottle Opener"
+    },
+    {
+      "prompt": "a drawer divider with interlocking cross slots",
+      "expectedTechniques": [
+        "Egg-Crate Cross-Slot Grid"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Drawer Divider with Interlocking Cross Slots"
+    },
+    {
+      "prompt": "a flat washer 20mm outer diameter, 8mm bore, 2mm thick",
+      "expectedTechniques": [
+        "Simple Annular CSG (Washers, Rings, Spacers)"
+      ],
+      "minScore": 9,
+      "approvedDate": "2026-03-21",
+      "objectName": "Flat Washer"
+    },
+    {
+      "prompt": "a lampshade with a wide bottom opening and narrow top ring",
+      "expectedTechniques": [
+        "Thin-Walled Cone Shell (Lampshade)"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Lampshade"
+    },
+    {
+      "prompt": "a shower drain cover 80mm diameter with radial drainage slots",
+      "expectedTechniques": [
+        "Radial Slot Disc"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Shower Drain Cover"
+    },
+    {
+      "prompt": "a toilet paper holder that mounts to a wall",
+      "expectedTechniques": [
+        "Wall-Mount Rod Holder"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Toilet Paper Holder (Wall Mount)"
+    },
+    {
+      "prompt": "a toothbrush holder with 4 slots",
+      "expectedTechniques": [
+        "Slotted Holder Block"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Toothbrush Holder with 4 Slots"
+    },
+    {
+      "prompt": "a towel bar with two wall brackets and a cylindrical rod",
+      "expectedTechniques": [
+        "Wall-Mounted Bar Assembly"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Towel Bar"
+    },
+    {
+      "prompt": "a T-slot nut for aluminum extrusion",
+      "expectedTechniques": [
+        "T-Profile CSG Stacking"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "T-slot nut for aluminum extrusion"
+    },
+    {
+      "prompt": "a wing nut with M6 bore",
+      "expectedTechniques": [
+        "Hull-Sphere Wing Fin"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Wing Nut with M6 Bore"
+    },
+    {
+      "prompt": "a cotter pin 30mm long",
+      "expectedTechniques": [
+        "Wire Hull-Chain for Pin/Clip Forms"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Cotter Pin (Retrain)"
+    },
+    {
+      "prompt": "a cam lever with eccentric lobe and pivot bore",
+      "expectedTechniques": [
+        "Eccentric Cam Lever Assembly"
+      ],
+      "minScore": 5,
+      "approvedDate": "2026-03-21",
+      "objectName": "Cam Lever with Eccentric Lobe and Pivot Bore"
+    },
+    {
+      "prompt": "a bearing housing with a flange and 4 bolt holes",
+      "expectedTechniques": [
+        "Flanged Cylindrical Housing"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Bearing Housing with Flange"
+    },
+    {
+      "prompt": "a shaft coupling joining two 8mm shafts",
+      "expectedTechniques": [
+        "Clamp-Style Shaft Coupling"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Shaft Coupling"
+    },
+    {
+      "prompt": "a curtain rod bracket that mounts to a wall with a curved cradle",
+      "expectedTechniques": [
+        "3D Cylinder U-Cradle for Rod Brackets"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Curtain Rod Bracket (Retrain)"
+    },
+    {
+      "prompt": "a jar lid with knurled grip edge",
+      "expectedTechniques": [
+        "Knurled Cylindrical Grip"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Jar Lid with Knurled Grip Edge"
+    },
+    {
+      "prompt": "a pulley wheel 40mm diameter with a V-groove",
+      "expectedTechniques": [
+        "Component-Based V-Groove Pulley"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Pulley Wheel with V-Groove"
+    },
+    {
+      "prompt": "a key hook rack with a flat plate and 4 hooks",
+      "expectedTechniques": [
+        "Hull-Chain J-Hook with Mounting Plate"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Key Hook Rack (Retrain)"
+    },
+    {
+      "prompt": "a USB cable organizer with 4 cable slots on a flat base",
+      "expectedTechniques": [
+        "Flat Base Slot Organizer"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "USB Cable Organizer"
+    },
+    {
+      "prompt": "a bird feeder tray with rim and 2 hanging holes",
+      "expectedTechniques": [
+        "Rimmed Tray with Hanging Tabs"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Bird Feeder Tray with Rim and 2 Hanging Holes"
+    },
+    {
+      "prompt": "a business card holder with angled display slot",
+      "expectedTechniques": [
+        "Open-Frame Angled Slot Holder"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Business Card Holder with Angled Display Slot"
+    },
+    {
+      "prompt": "a chopstick rest",
+      "expectedTechniques": [],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Chopstick Rest"
+    },
+    {
+      "prompt": "a garden plant label stake",
+      "expectedTechniques": [],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Garden Plant Label Stake"
+    },
+    {
+      "prompt": "a headphone stand with an arc top and weighted base",
+      "expectedTechniques": [],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Headphone Stand"
+    },
+    {
+      "prompt": "a hose barb fitting for 10mm hose",
+      "expectedTechniques": [],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Hose Barb Fitting for 10mm Hose"
+    },
+    {
+      "prompt": "a measuring scoop with a flat handle",
+      "expectedTechniques": [
+        "Hollow Hemisphere Scoop"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Measuring Scoop with Flat Handle"
+    },
+    {
+      "prompt": "a monitor stand riser 300x200x80mm with cable routing hole",
+      "expectedTechniques": [
+        "Open-Frame Angled Platform"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Monitor Stand Riser"
+    },
+    {
+      "prompt": "a paper clip holder cup",
+      "expectedTechniques": [
+        "Small Desktop Container (Bezier Revolution)"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Paper Clip Holder Cup"
+    },
+    {
+      "prompt": "a rubber stamp handle with flat base and ergonomic grip",
+      "expectedTechniques": [
+        "Hull-Chain Ergonomic Grip"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Rubber Stamp Handle"
+    },
+    {
+      "prompt": "a star-shaped cookie cutter",
+      "expectedTechniques": [],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Star-Shaped Cookie Cutter"
+    },
+    {
+      "prompt": "a threaded rod 50mm long with M8 thread",
+      "expectedTechniques": [
+        "Helical Thread (Threaded Rod/Bolt)"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Threaded Rod"
+    },
+    {
+      "prompt": "a wine bottle stopper with a decorative round top",
+      "expectedTechniques": [
+        "Sphere-Top Stopper"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Wine Bottle Stopper"
+    },
+    {
+      "prompt": "an egg cup",
+      "expectedTechniques": [
+        "Bezier Profile Revolution",
+        "Foot and Base Design"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "an egg cup"
+    },
+    {
+      "prompt": "an herb pot with a label slot in the front",
+      "expectedTechniques": [
+        "Bezier Profile Revolution",
+        "Foot and Base Design"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Herb Pot with Label Slot"
+    },
+    {
+      "prompt": "a desk nameplate with angled stand",
+      "expectedTechniques": [],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "desk nameplate with angled stand"
+    },
+    {
+      "prompt": "an over-door towel hook that clips over a door edge with a hook on the front side",
+      "expectedTechniques": [
+        "Over-Door Hook with 2D Profile Extrusion"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Over-Door Towel Hook (Retrain)"
+    },
+    {
+      "prompt": "a cotter pin 30mm long with thin wire-like legs of equal length",
+      "expectedTechniques": [
+        "Wire Hull-Chain for Pin/Clip Forms"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Cotter Pin"
+    },
+    {
+      "prompt": "a Raspberry Pi case with port cutouts on the sides",
+      "expectedTechniques": [
+        "Electronics Enclosure with Port Cutouts"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Raspberry Pi case with port cutouts"
+    },
+    {
+      "prompt": "a battery compartment with spring contacts and a sliding lid",
+      "expectedTechniques": [
+        "Battery Compartment with Coil Springs"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Battery Compartment with Spring Contacts and Sliding Lid"
+    },
+    {
+      "prompt": "a cable tie / zip tie with ratchet teeth",
+      "expectedTechniques": [
+        "Flat Strap with Sawtooth Ratchet"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Cable Tie / Zip Tie"
+    },
+    {
+      "prompt": "a dovetail joint with male and female pieces displayed side by side",
+      "expectedTechniques": [],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Dovetail Joint"
+    },
+    {
+      "prompt": "a fence post with a decorative pointed finial on top",
+      "expectedTechniques": [
+        "Post-and-Finial Hybrid CSG"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Fence Post with Decorative Pointed Finial"
+    },
+    {
+      "prompt": "a gothic arch window frame with pointed top",
+      "expectedTechniques": [],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Gothic Arch Window Frame"
+    },
+    {
+      "prompt": "a level bubble vial housing with a window cutout",
+      "expectedTechniques": [
+        "Enclosed Bore Housing with Window Cutout"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Level Bubble Vial Housing with Window Cutout"
+    },
+    {
+      "prompt": "a magnetic mount base with a counterbore for a disc magnet",
+      "expectedTechniques": [
+        "Counterbore Mount Base"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Magnetic Mount Base with Counterbore"
+    },
+    {
+      "prompt": "a miniature classical column with capital, shaft, and base",
+      "expectedTechniques": [
+        "Classical Column Assembly"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Classical Column"
+    },
+    {
+      "prompt": "a protractor half-circle with degree tick marks at 10-degree intervals",
+      "expectedTechniques": [],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Protractor"
+    },
+    {
+      "prompt": "a roman arch bridge",
+      "expectedTechniques": [],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "a roman arch bridge"
+    },
+    {
+      "prompt": "a small safe box with a combination dial on the front",
+      "expectedTechniques": [
+        "Box/Enclosure Assembly"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Small Safe Box with Combination Dial"
+    },
+    {
+      "prompt": "a spiral staircase with 5 steps around a central column",
+      "expectedTechniques": [
+        "Twisted Wavy Extrusion"
+      ],
+      "minScore": 7,
+      "approvedDate": "2026-03-21",
+      "objectName": "Spiral Staircase"
+    },
+    {
+      "prompt": "a toggle clamp with base, arm, and clamping bar",
+      "expectedTechniques": [
+        "C-Clamp with Snap-In Channels"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Toggle Clamp"
+    },
+    {
+      "prompt": "a watch box with a hinged lid",
+      "expectedTechniques": [
+        "Hinged Lid Box Assembly"
+      ],
+      "minScore": 8,
+      "approvedDate": "2026-03-21",
+      "objectName": "Watch Box with Hinged Lid"
+    },
+    {
+      "prompt": "a snap buckle clip like on a backpack strap",
+      "expectedTechniques": [
+        "Two-Part Snap Buckle"
+      ],
+      "minScore": 6,
+      "approvedDate": "2026-03-21",
+      "objectName": "Snap Buckle Clip"
+    },
+    {
+      "prompt": "an SD card holder rack for 6 cards",
+      "expectedTechniques": [
+        "Solid-Block Slot Rack"
+      ],
+      "minScore": 6,
+      "approvedDate": "2026-03-21",
+      "objectName": "SD Card Holder Rack for 6 Cards"
+    },
+    {
+      "prompt": "an open-end wrench for a 10mm bolt",
+      "expectedTechniques": [],
+      "minScore": 5,
+      "approvedDate": "2026-03-21",
+      "objectName": "Open-End Wrench for a 10mm Bolt"
+    }
+  ]
+}
