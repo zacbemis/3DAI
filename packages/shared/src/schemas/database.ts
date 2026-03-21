@@ -5,29 +5,31 @@
 // Enums
 // ---------------------------------------------------------------------------
 
-export type GenerationStatus =
+export type PromptStatus =
   | "queued"
   | "running"
-  | "awaiting_review"
   | "completed"
   | "failed"
   | "cancelled";
-
-export type StepStatus = "running" | "completed" | "failed";
-
-export type AssetKind = "render" | "grid" | "thumbnail";
 
 // ---------------------------------------------------------------------------
 // Row types
 // ---------------------------------------------------------------------------
 
-export interface Profile {
+export interface User {
   id: string;
   email: string;
   display_name: string | null;
   avatar_url: string | null;
+  defaults: UserDefaults;
   created_at: string;
   updated_at: string;
+}
+
+export interface UserDefaults {
+  model?: string;
+  max_steps?: number;
+  auto_evaluate?: boolean;
 }
 
 export interface Project {
@@ -35,105 +37,61 @@ export interface Project {
   user_id: string;
   name: string;
   description: string | null;
+  config: ProjectConfig;
   created_at: string;
   updated_at: string;
 }
 
-export interface Generation {
+export interface ProjectConfig {
+  model?: string;
+  max_steps?: number;
+  auto_evaluate?: boolean;
+}
+
+export interface Prompt {
   id: string;
+  project_id: string;
   user_id: string;
-  project_id: string | null;
   prompt: string;
-  status: GenerationStatus;
+  scad_code: string | null;
+  status: PromptStatus;
+  score: number | null;
+  error: string | null;
   model: string;
   auto_evaluate: boolean;
   max_steps: number;
-  final_score: number | null;
-  error: string | null;
   created_at: string;
   completed_at: string | null;
-}
-
-export interface Step {
-  id: string;
-  generation_id: string;
-  step_number: number;
-  status: StepStatus;
-  scad_code: string;
-  score: number | null;
-  feedback: Record<string, unknown> | null;
-  user_feedback: string | null;
-  error: string | null;
-  duration_ms: number | null;
-  created_at: string;
-  completed_at: string | null;
-}
-
-export interface Asset {
-  id: string;
-  generation_id: string;
-  step_id: string | null;
-  kind: AssetKind;
-  storage_path: string;
-  file_name: string;
-  mime_type: string;
-  size_bytes: number | null;
-  metadata: Record<string, unknown> | null;
-  created_at: string;
-}
-
-export interface Preset {
-  id: string;
-  user_id: string;
-  name: string;
-  config: Record<string, unknown>;
-  is_default: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 // ---------------------------------------------------------------------------
 // Insert types (omit server-generated fields)
 // ---------------------------------------------------------------------------
 
-export type ProfileInsert = Pick<Profile, "id" | "email"> &
-  Partial<Pick<Profile, "display_name" | "avatar_url">>;
+export type UserInsert = Pick<User, "id" | "email"> &
+  Partial<Pick<User, "display_name" | "avatar_url" | "defaults">>;
 
 export type ProjectInsert = Pick<Project, "user_id" | "name"> &
-  Partial<Pick<Project, "description">>;
+  Partial<Pick<Project, "description" | "config">>;
 
-export type GenerationInsert = Pick<
-  Generation,
-  "user_id" | "prompt" | "model"
-> &
-  Partial<
-    Pick<Generation, "project_id" | "auto_evaluate" | "max_steps" | "status">
-  >;
+export type PromptInsert = Pick<Prompt, "project_id" | "user_id" | "prompt" | "model"> &
+  Partial<Pick<Prompt, "auto_evaluate" | "max_steps" | "status">>;
 
-export type StepInsert = Pick<Step, "generation_id" | "step_number" | "scad_code"> &
-  Partial<Pick<Step, "status" | "score" | "feedback" | "user_feedback" | "error" | "duration_ms">>;
+export type PromptUpdate = Partial<
+  Pick<Prompt, "scad_code" | "status" | "score" | "error" | "completed_at">
+>;
 
-export type AssetInsert = Pick<
-  Asset,
-  "generation_id" | "kind" | "storage_path" | "file_name" | "mime_type"
-> &
-  Partial<Pick<Asset, "step_id" | "size_bytes" | "metadata">>;
+export type ProjectUpdate = Partial<
+  Pick<Project, "name" | "description" | "config">
+>;
 
-export type PresetInsert = Pick<Preset, "user_id" | "name"> &
-  Partial<Pick<Preset, "config" | "is_default">>;
+export type UserUpdate = Partial<
+  Pick<User, "display_name" | "avatar_url" | "defaults">
+>;
 
 // ---------------------------------------------------------------------------
-// SSE event types
+// SSE event types (streamed during generation)
 // ---------------------------------------------------------------------------
-
-export interface SseStepEvent {
-  type: "step";
-  step_number: number;
-  status: StepStatus;
-  score: number | null;
-  feedback: Record<string, unknown> | null;
-  asset_urls: Partial<Record<AssetKind, string>>;
-}
 
 export type SseStage =
   | "queued"
@@ -142,23 +100,23 @@ export type SseStage =
   | "rendering"
   | "compositing"
   | "evaluating"
-  | "revising"
-  | "awaiting_review";
+  | "revising";
 
 export interface SseStatusEvent {
   type: "status";
   stage: SseStage;
+  step: number;
+  max_steps: number;
 }
 
 export interface SseCompleteEvent {
   type: "complete";
-  final_score: number | null;
-  asset_urls: Partial<Record<AssetKind, string>>;
+  score: number | null;
+  scad_code: string;
 }
 
 export interface SseErrorEvent {
   type: "error";
-  stage: string;
   message: string;
   retryable: boolean;
 }
@@ -168,8 +126,23 @@ export interface SseCancelledEvent {
 }
 
 export type SseEvent =
-  | SseStepEvent
   | SseStatusEvent
   | SseCompleteEvent
   | SseErrorEvent
   | SseCancelledEvent;
+
+// ---------------------------------------------------------------------------
+// Storage path helpers
+// ---------------------------------------------------------------------------
+
+export function renderBasePath(userId: string, promptId: string): string {
+  return `users/${userId}/prompts/${promptId}`;
+}
+
+export function gridPath(userId: string, promptId: string): string {
+  return `${renderBasePath(userId, promptId)}/grid.png`;
+}
+
+export function thumbnailPath(userId: string, promptId: string): string {
+  return `${renderBasePath(userId, promptId)}/thumbnail.png`;
+}
