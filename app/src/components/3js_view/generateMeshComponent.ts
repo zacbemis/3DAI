@@ -1,6 +1,6 @@
-import * as THREE from 'three';
-
 /** Encode binary buffer as base64 (renderer-safe). */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 function bufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -10,7 +10,7 @@ function bufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-function attributeToBase64(attr: THREE.BufferAttribute): string {
+function attributeToBase64(attr: any): string {
   const arr = attr.array;
   const slice = arr.buffer.slice(arr.byteOffset, arr.byteOffset + arr.byteLength);
   return bufferToBase64(slice as ArrayBuffer);
@@ -37,13 +37,13 @@ export function sanitizeComponentName(filename: string): string {
  * Expects geometry with position + normals (STL meshes are non-indexed).
  */
 export function generateMeshComponentTsx(
-  geometry: THREE.BufferGeometry,
+  geometry: any,
   sourceFilename: string,
 ): { componentName: string; content: string; outputFilename: string } {
   geometry.computeVertexNormals();
 
-  const posAttr = geometry.attributes.position as THREE.BufferAttribute;
-  const normAttr = geometry.attributes.normal as THREE.BufferAttribute;
+  const posAttr = geometry.attributes.position as any;
+  const normAttr = geometry.attributes.normal as any;
   if (!normAttr) {
     throw new Error('Geometry must have normals');
   }

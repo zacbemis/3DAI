@@ -3,15 +3,19 @@ import landingBg from '../../assets/landing_page.jpg';
 
 interface LandingPageProps {
   onLoginClick: () => void;
+  onChatClick: () => void;
 }
 
-export function LandingPage({ onLoginClick }: LandingPageProps) {
+export function LandingPage({
+  onLoginClick,
+  onChatClick,
+}: LandingPageProps) {
   return (
     <div
       className="page-fade-in flex h-screen w-full flex-col overflow-hidden bg-cover bg-center bg-no-repeat font-sans antialiased"
       style={{ backgroundImage: `url(${landingBg})` }}
     >
-      <Navbar onLoginClick={onLoginClick} />
+      <Navbar onLoginClick={onLoginClick} onChatClick={onChatClick} />
       <div className="flex flex-1 flex-col items-center justify-center px-4">
         <h1 className="m-0 text-center text-5xl font-extrabold tracking-tight text-white drop-shadow-[0_4px_15px_rgba(0,0,0,0.5)] md:text-7xl md:leading-none lg:text-8xl">
           Welcome to 3DAI

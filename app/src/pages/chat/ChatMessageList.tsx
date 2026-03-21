@@ -3,6 +3,7 @@ import type { ChatMessage, ChatRole } from './chat-types';
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
+  emptyMessage?: string;
 }
 
 const bubbleStyles: Record<ChatRole, string> = {
@@ -12,7 +13,7 @@ const bubbleStyles: Record<ChatRole, string> = {
     'self-start border-dashed border-zinc-700/60 bg-zinc-900/50 text-sm text-zinc-400',
 };
 
-export function ChatMessageList({ messages }: ChatMessageListProps) {
+export function ChatMessageList({ messages, emptyMessage }: ChatMessageListProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -27,8 +28,12 @@ export function ChatMessageList({ messages }: ChatMessageListProps) {
     >
       {messages.length === 0 ? (
         <p className="mx-auto my-auto max-w-md px-4 text-center text-sm leading-relaxed text-zinc-500">
-          Describe a part or assembly in natural language. Progress stages will
-          appear here (SSE-shaped) once the worker is connected.
+          {emptyMessage ?? (
+            <>
+              Describe a part or assembly in natural language. Progress stages
+              will appear here (SSE-shaped) once the worker is connected.
+            </>
+          )}
         </p>
       ) : (
         messages.map((m) => (

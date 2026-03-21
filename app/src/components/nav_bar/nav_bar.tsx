@@ -3,9 +3,10 @@ import './nav_bar.css';
 
 interface NavbarProps {
     onLoginClick: () => void;
+    onChatClick: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onLoginClick }) => {
+const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onChatClick }) => {
     return (
         <nav className="navbar">
             <div className="nav-logo">3DAI</div>
@@ -15,7 +16,14 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick }) => {
                   className="nav-btn signup"
                   onClick={onLoginClick}
                 >
-                  Sign up
+                  Log In
+                </button>
+                <button
+                  type="button"
+                  className="nav-btn chat"
+                  onClick={onChatClick}
+                >
+                  Chat
                 </button>
             </div>
         </nav>
