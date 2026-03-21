@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import './LoginPage.css';
+import {
+  AuthCard,
+  AuthPageShell,
+  authFieldInputClass,
+  authFieldLabelClass,
+  authLinkClass,
+  authPrimaryButtonClass,
+} from '../../components/auth/auth-layout';
 
 interface LoginPageProps {
   onSignupClick: () => void;
@@ -35,65 +42,73 @@ const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   return (
-    <div className="login-container page-fade-in">
-      <div className="login-card">
-        <div className="login-header">
-          <h2>Welcome Back</h2>
-          <p>Log in to your 3DAI account</p>
+    <AuthPageShell>
+      <AuthCard>
+        <div className="mb-8">
+          <h2 className="mb-2 text-[1.8rem] font-semibold leading-tight">Welcome Back</h2>
+          <p className="text-[0.9rem] text-zinc-500">Log in to your 3DAI account</p>
         </div>
 
-        <form onSubmit={handleLogin} className="login-form">
-          <div className="input-field">
-            <label>Email Address</label>
+        <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <label className={authFieldLabelClass}>Email Address</label>
             <input
               type="email"
               placeholder="example@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className={authFieldInputClass}
               required
             />
           </div>
 
-          <div className="input-field">
-            <label>Password</label>
+          <div className="flex flex-col gap-2">
+            <label className={authFieldLabelClass}>Password</label>
             <input
               type="password"
               placeholder="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className={authFieldInputClass}
               required
             />
           </div>
-          <p
-            className="forget-password-btn"
+
+          <button
+            type="button"
+            className="cursor-pointer text-right text-sm text-zinc-400 transition-colors hover:text-white"
             onClick={onForgotPasswordClick}
-            style={{ cursor: 'pointer' }}
           >
             Forget Password?
-          </p>
+          </button>
 
           {error && (
-            <p style={{ color: '#f87171', fontSize: '0.85rem', margin: '0.5rem 0' }}>
-              {error}
-            </p>
+            <p className="text-[0.85rem] leading-snug text-red-400">{error}</p>
           )}
 
-          <button type="submit" className="login-main-btn" disabled={isLoading}>
+          <button
+            type="submit"
+            className={`${authPrimaryButtonClass} mt-2.5 w-full`}
+            disabled={isLoading}
+          >
             {isLoading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
 
-        <div className="login-footer">
+        <div className="mt-6 text-center text-[0.9rem] text-zinc-500">
           <p>
-            Don&apos;t have an account?
-            <span className="link-text" onClick={onSignupClick}>
-              {' '}
+            Don&apos;t have an account?{' '}
+            <button
+              type="button"
+              className={`${authLinkClass} inline border-0 bg-transparent p-0`}
+              onClick={onSignupClick}
+            >
               Create one
-            </span>
+            </button>
           </p>
         </div>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthPageShell>
   );
 };
 

@@ -8,7 +8,6 @@ import { ChatPage } from './pages/chat/ChatPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { getSupabaseClient } from './lib/supabaseClient';
 import type { AuthChangeEvent } from '@supabase/supabase-js';
-import './App.css';
 
 type View =
   | 'landing'
@@ -72,14 +71,14 @@ function AppRoutes() {
 
   if (isLoading) {
     return (
-      <div className="app-viewport flex items-center justify-center">
+      <div className="relative flex h-screen w-screen flex-col animate-app-viewport items-center justify-center">
         <span className="text-sm text-zinc-500">Loading…</span>
       </div>
     );
   }
 
   return (
-    <div className="app-viewport">
+    <div className="relative flex h-screen w-screen flex-col animate-app-viewport">
       {view === 'landing' && (
         <LandingPage
           onLoginClick={() => navigateTo('login')}
