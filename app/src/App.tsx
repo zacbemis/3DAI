@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import LandingPage from './pages/landing_page/LandingPage';
 import LoginPage from './pages/LoginPage/LoginPage';
 import SignupPage from './pages/SignupPage/SignupPage';
+import ResetPassword from './pages/ResetPassword/ResetPassword';
 import ChatArea from './components/chat_area/chat_area';
 import './App.css';
 
 const App: React.FC = () => {
-    const [view, setView] = useState<'landing' | 'login' | 'chat' | 'signup'>('landing');
+    const [view, setView] = useState<'landing' | 'login' | 'chat' | 'signup' | 'resetpassword'>('landing');
 
     return (
         <div className="app-viewport">
@@ -18,6 +19,7 @@ const App: React.FC = () => {
                 <LoginPage 
                     onSignupClick={() => setView('signup')} 
                     onLoginSuccess={() => setView('chat')} 
+                    onForgotPasswordClick={() => setView('resetpassword')}
                 />
             )}
 
@@ -25,6 +27,12 @@ const App: React.FC = () => {
                 <SignupPage 
                     onSignupSuccess={() => setView('login')} 
                     onBackToLogin={() => setView('login')} 
+                />
+            )}
+
+            {view === 'resetpassword' && (
+                <ResetPassword
+                onBackToLogin={() => setView('login')} 
                 />
             )}
 
