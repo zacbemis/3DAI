@@ -1,19 +1,21 @@
 import Navbar from '../../components/nav_bar/nav_bar';
-import landingBg from '../../assets/landing_page.jpg';
+import landingBg from '../../assets/higher_res_bg.png';
 
 interface LandingPageProps {
   onLoginClick: () => void;
   onChatClick: () => void;
+  onLogout?: () => void;
 }
 
 export function LandingPage({
   onLoginClick,
   onChatClick,
+  onLogout,
 }: LandingPageProps) {
   return (
-    <div className="page-fade-in relative flex min-h-screen w-full flex-col overflow-hidden font-sans antialiased">
+    <div className="page-fade-in relative flex min-h-screen w-full flex-col overflow-hidden bg-[#0a0a0c] font-sans antialiased">
       <div
-        className="absolute inset-0 scale-105 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${landingBg})` }}
         aria-hidden
       />
@@ -34,7 +36,7 @@ export function LandingPage({
         aria-hidden
       />
 
-      <Navbar onLoginClick={onLoginClick} onChatClick={onChatClick} />
+      <Navbar onLoginClick={onLoginClick} onChatClick={onChatClick} onLogout={onLogout} />
 
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 pb-16 pt-[5.5rem] sm:px-8">
         <div className="mx-auto flex w-full max-w-3xl flex-col items-center text-center">
@@ -50,21 +52,13 @@ export function LandingPage({
             </span>
           </h1>
 
-          {/* items-center prevents column flex from stretching buttons full-width (which broke label centering). Match nav .nav-btn: 8px 20px, gap 15px */}
-          <div className="mt-6 flex flex-col items-center gap-[15px] sm:mt-8 sm:flex-row sm:justify-center">
+          <div className="mt-6 sm:mt-8">
             <button
               type="button"
               className="inline-flex cursor-pointer items-center justify-center rounded-lg border-0 bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500 p-3 text-[0.9rem] font-semibold text-white shadow-[0_12px_40px_rgba(99,102,241,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(99,102,241,0.45)] active:translate-y-0"
               onClick={onLoginClick}
             >
               Get started
-            </button>
-            <button
-              type="button"
-              className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-white/[0.06] p-3 text-[0.9rem] font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:border-white/25 hover:bg-white/[0.1] active:scale-[0.99]"
-              onClick={onChatClick}
-            >
-              Open chat
             </button>
           </div>
         </div>

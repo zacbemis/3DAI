@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import './LoginPage.css';
 
 interface LoginPageProps {
@@ -8,14 +9,20 @@ interface LoginPageProps {
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({onSignupClick, onLoginSuccess, onForgotPasswordClick }) => {
+    const { login, isLoading } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Add your auth logic here
-        console.log("Logging in with:", email);
-        onLoginSuccess();
+        setError('');
+        try {
+            await login(email, password);
+            onLoginSuccess();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Login failed');
+        }
     };
 
     return (
@@ -54,8 +61,14 @@ const LoginPage: React.FC<LoginPageProps> = ({onSignupClick, onLoginSuccess, onF
                         Forget Password?
                     </p>
 
-                    <button type="submit" className="login-main-btn">
-                        Sign In
+                    {error && (
+                        <p style={{ color: '#f87171', fontSize: '0.85rem', margin: '0.5rem 0' }}>
+                            {error}
+                        </p>
+                    )}
+
+                    <button type="submit" className="login-main-btn" disabled={isLoading}>
+                        {isLoading ? 'Signing in…' : 'Sign In'}
                     </button>
 
                 </form>

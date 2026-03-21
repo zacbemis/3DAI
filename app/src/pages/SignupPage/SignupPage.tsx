@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import './SignupPage.css';
 
 interface SignupPageProps {
@@ -7,19 +8,22 @@ interface SignupPageProps {
 }
 
 const SignupPage: React.FC<SignupPageProps> = ({ onBackToLogin, onSignupSuccess }) => {
+    const { signup, isLoading } = useAuth();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
-    const handleSignup = (e: React.FormEvent) => {
+    const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        // Add your registration logic here (calling an API, etc.)
-        console.log("Registering:", { firstName, lastName, email });
-        
-        // If registration is successful, trigger the view change in App.tsx
-        onSignupSuccess();
+        setError('');
+        try {
+            await signup(email, password, `${firstName} ${lastName}`.trim());
+            onSignupSuccess();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Signup failed');
+        }
     };
 
     return (
@@ -78,8 +82,14 @@ const SignupPage: React.FC<SignupPageProps> = ({ onBackToLogin, onSignupSuccess 
                         />
                     </div>
 
-                    <button type="submit" className="signup-main-btn">
-                        Create Account
+                    {error && (
+                        <p style={{ color: '#f87171', fontSize: '0.85rem', margin: '0.5rem 0' }}>
+                            {error}
+                        </p>
+                    )}
+
+                    <button type="submit" className="signup-main-btn" disabled={isLoading}>
+                        {isLoading ? 'Creating…' : 'Create Account'}
                     </button>
                 </form>
 
