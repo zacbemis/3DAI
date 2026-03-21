@@ -1,94 +1,84 @@
 ---
 name: ts_express_compose_mvp
-overview: Electron + React desktop app for AI-powered 3D CAD generation. Node.js + Express TypeScript backend, Supabase for auth/data/storage, Docker Compose orchestration.
+overview: Electron + React desktop app for AI-powered 3D CAD generation. Node.js + Express TypeScript backend, Supabase for auth/data/storage.
 todos:
   - id: scaffold-monorepo
-    content: Create TypeScript monorepo structure with apps/services/packages/infra and base tooling.
+    content: Create TypeScript monorepo structure with app/services/packages/infra and base tooling.
     status: pending
   - id: setup-database
     content: Write Supabase migration SQL, RLS policies, storage bucket setup, and shared TypeScript types.
     status: pending
-  - id: build-express-api
-    content: Implement Express TypeScript API with Supabase auth verification and generation/history endpoints.
-    status: pending
-  - id: implement-worker-loop
-    content: Build Node worker loop for LLM/OpenSCAD/render/evaluate/revise with max step/retry constraints and optional auto-evaluate.
-    status: pending
-  - id: wire-redis-sse
-    content: Integrate BullMQ + Redis pub/sub for queueing and SSE progress streaming.
+  - id: build-api-with-generation
+    content: Implement Express API with auth, prompt/project/user endpoints, SSE streaming, and inline generation loop.
     status: pending
   - id: frontend-desktop-screens
-    content: Implement Electron + React screens for auth, prompt, live steps, final STL viewer, and history.
+    content: Implement Electron + React screens for auth, prompt, live progress, STL viewer with local cache, and project history.
     status: pending
   - id: compose-dev-stack
-    content: Create Docker Compose stack for api, worker, redis and document local development workflow.
+    content: Create Docker Compose stack for api service and document local development workflow.
     status: pending
 isProject: false
 ---
 
-# MVP Plan: TypeScript + Express + Docker Compose
+# MVP Plan: TypeScript + Express
 
 ## Finalized Stack
 
 - Desktop: Electron + React + TypeScript.
-- Backend: Node.js + Express + TypeScript (no Python/FastAPI).
+- Backend: Node.js + Express + TypeScript. Single API service handles routes and generation.
 - AI Model: Single model (e.g. GPT-4o) handles both SCAD code generation and vision-based evaluation.
-- Modeling: OpenSCAD CLI invoked from Node worker service.
+- Modeling: OpenSCAD CLI invoked from the API service.
 - Image composition: Node image library (prefer `sharp`, fallback `jimp`) for 2x2 labeled grid.
 - 3D viewer: React Three Fiber (or Three.js directly if needed).
-- Realtime updates: Server-Sent Events (SSE).
+- Realtime updates: Server-Sent Events (SSE), streamed directly from the generation loop.
 - Auth/DB/Storage: Supabase (Google OAuth + email/password + Postgres + Storage).
-- Orchestration: Docker Compose for MVP.
 
-## Service-Oriented Folder Structure
+## Folder Structure
 
-- [app/](app/) - Electron shell and preload.
-- [services/api/](services/api/) - Express API (auth-aware routes, history queries, SSE endpoint).
-- [services/worker/](services/worker/) - Background generation pipeline (LLM/OpenSCAD/vision loop).
+- [app/](app/) - Electron shell, preload, and React renderer.
+- [services/api/](services/api/) - Express API (routes, auth, generation loop, SSE).
 - [packages/shared/](packages/shared/) - shared TypeScript types for DTOs/events.
-- [infra/docker/](infra/docker/) - Docker Compose files and service env templates.
-- [infra/supabase/](infra/supabase/) - schema SQL, RLS policy SQL, bucket setup notes.
+- [infra/docker/](infra/docker/) - Docker Compose file and env templates.
+- [infra/supabase/](infra/supabase/) - schema SQL, RLS policy SQL, bucket setup.
 
 ## Runtime Architecture
 
-- `api` service handles:
-  - `POST /api/generations` (create generation + enqueue task)
-  - `GET /api/generations/:id/stream` (SSE)
-  - `GET /api/generations` (list user's generations)
-  - `GET /api/generations/:id` (generation detail with steps + assets)
-  - `POST /api/generations/:id/continue` (submit user feedback + trigger next step when auto_evaluate=false)
-  - `POST /api/generations/:id/cancel` (cancel a running/awaiting_review generation)
-  - `GET /api/generations/:id/steps/:stepNumber/stl` (enqueue on-demand STL compile via worker, return result)
-  - `GET /api/projects` / `POST /api/projects` (project management)
-  - `GET /api/presets` / `POST /api/presets` (user presets)
-- `worker` service handles:
-  - **Generation loop:**
-    1. LLM creates/revises OpenSCAD code.
-    2. Write `step_n.scad` to temp workspace.
-    3. Run OpenSCAD to produce 4 angle renders (STL is not persisted — SCAD code is saved in DB).
-    4. Combine renders into labeled 2x2 grid. Downscale one render as a thumbnail for history/list views.
-    5. Upload render/grid/thumbnail assets to Supabase Storage.
-    6. If `auto_evaluate` is true: send renders to the AI model for score/feedback, then revise and loop.
-    7. If `auto_evaluate` is false: persist step, set generation status to `awaiting_review`, emit progress, and stop. User reviews and triggers continue via the API.
-    8. Persist step and emit progress via Redis pub/sub.
-    9. Repeat until score >= 8, max steps reached, or user stops.
-  - **On-demand STL compilation:** compiles SCAD code from DB when requested (OpenSCAD only runs in the worker container).
-  - **Cancellation:** checks for cancelled status between steps and aborts if found.
-- `api` and `worker` coordinate via Redis-backed queue (BullMQ).
+Single API service handles everything. No separate worker, no message queue.
+
+- **API routes:**
+  - `POST /api/prompts` (create prompt + kick off generation)
+  - `GET /api/prompts/:id/stream` (SSE — streams progress directly from the generation loop)
+  - `POST /api/prompts/:id/cancel` (cancel a running generation)
+  - `GET /api/prompts/:id/stl` (on-demand STL compilation from SCAD code in DB)
+  - `GET /api/projects` / `POST /api/projects` (project CRUD)
+  - `GET /api/projects/:id/prompts` (list prompts in a project)
+  - `GET /api/users/me` / `PATCH /api/users/me` (profile + defaults)
+- **Generation loop (runs inline in the API process):**
+  1. AI model generates/revises OpenSCAD code.
+  2. Write `.scad` to temp workspace.
+  3. Run OpenSCAD to produce 4 angle renders.
+  4. Combine renders into labeled 2x2 grid + downscale one as thumbnail.
+  5. Upload grid/thumbnail to Supabase Storage (`renders` bucket).
+  6. If `auto_evaluate` is true: send renders to AI model for score/feedback, revise and loop.
+  7. If `auto_evaluate` is false: single pass, no vision loop.
+  8. Stream progress to the SSE connection at each stage.
+  9. On completion: write final `scad_code` + `score` to the `prompts` row in DB.
+  10. Repeat internally until score >= 8, max steps reached, or cancelled.
+- All generation work is async I/O (LLM API calls, child process spawns, file uploads) so it does not block the Node event loop. Multiple generations can run concurrently.
+- Intermediate steps (SCAD revisions, per-step scores) are ephemeral — held in memory during the run, discarded after. Only the final result is persisted.
 
 ## Compose Services (MVP)
 
-- `desktop-dev` (optional local dev wrapper)
-- `web` (React dev/build)
-- `api` (Express)
-- `worker` (Node TS worker)
-- `redis` (queue + pub/sub for progress)
-- Supabase stays managed cloud (no local supabase containers required for MVP)
+- `api` (Express — handles routes + generation)
+- Supabase stays managed cloud (no local containers required for MVP)
+- Electron app runs natively on the user's machine (not containerised)
 
 ## Data Model in Supabase
 
-### `profiles`
-Synced from `auth.users` via database trigger.
+Three tables. Simple chain: users → projects → prompts.
+
+### `users`
+Synced from `auth.users` via database trigger. Stores user-level defaults.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -96,137 +86,97 @@ Synced from `auth.users` via database trigger.
 | email | text | |
 | display_name | text | nullable |
 | avatar_url | text | nullable |
+| defaults | jsonb | model, max_steps, auto_evaluate, style hints |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 
 ### `projects`
-Optional folders to organize generations.
+Groups related prompts. Every prompt belongs to a project.
 
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK | → profiles |
+| user_id | uuid FK | → users |
 | name | text | |
 | description | text | nullable |
+| config | jsonb | project-level overrides: model, max_steps, auto_evaluate |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 
-### `generations`
-One row per prompt submission.
+### `prompts`
+One row per user prompt. Stores only the final/best result.
 
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK | → profiles |
-| project_id | uuid FK | nullable (ungrouped) |
+| project_id | uuid FK | → projects |
+| user_id | uuid FK | → users (denormalised for RLS) |
 | prompt | text | the user's natural language request |
-| status | enum | queued, running, awaiting_review, completed, failed, cancelled |
-| model | text | which AI model was used |
-| auto_evaluate | boolean | default true; when false, worker stops after each step for manual review |
-| max_steps | int | default 5 |
-| final_score | numeric | nullable, set on completion |
+| scad_code | text | nullable, final OpenSCAD code (null while generating) |
+| status | enum | queued, running, completed, failed, cancelled |
+| score | numeric | nullable, final vision score |
 | error | text | nullable, set on failure |
+| model | text | which AI model was used |
+| auto_evaluate | boolean | default true |
+| max_steps | int | default 5 |
 | created_at | timestamptz | |
 | completed_at | timestamptz | nullable |
 
-### `steps`
-Each LLM → compile → evaluate cycle within a generation.
+## Storage
 
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| generation_id | uuid FK | → generations |
-| step_number | int | 1-indexed |
-| status | enum | running, completed, failed |
-| scad_code | text | the OpenSCAD source produced at this step |
-| score | numeric | nullable, from vision evaluation (null if auto_evaluate off) |
-| feedback | jsonb | nullable, flexible AI model vision response |
-| user_feedback | text | nullable, manual feedback from user (auto_evaluate=false flow) |
-| error | text | nullable, compilation or processing error for this step |
-| duration_ms | int | nullable |
-| created_at | timestamptz | |
-| completed_at | timestamptz | nullable |
+### Cloud (Supabase Storage)
+- Private bucket: `renders`.
+- Convention-based paths (no assets table):
+  - `users/{user_id}/prompts/{prompt_id}/grid.png`
+  - `users/{user_id}/prompts/{prompt_id}/thumbnail.png`
+  - `users/{user_id}/prompts/{prompt_id}/render_{angle}.png` (optional individual views)
+- API uploads grid + thumbnail on generation completion.
+- API returns short-lived signed URLs for the frontend.
 
-### `assets`
-Every file produced during generation.
-
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| generation_id | uuid FK | → generations |
-| step_id | uuid FK | nullable (for final/merged assets) |
-| kind | enum | render, grid, thumbnail |
-| storage_path | text | path in Supabase Storage bucket |
-| file_name | text | display name |
-| mime_type | text | |
-| size_bytes | bigint | nullable |
-| metadata | jsonb | nullable (camera angle, dimensions, etc.) |
-| created_at | timestamptz | |
-
-### `presets`
-Saved user configuration defaults.
-
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| user_id | uuid FK | → profiles |
-| name | text | |
-| config | jsonb | model prefs, max_steps, auto_evaluate default, style hints |
-| is_default | boolean | default false |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
-
-## Storage Policy
-
-- Private bucket: `generation-assets`.
-- Object paths:
-  - `users/{user_id}/generations/{generation_id}/step_{n}/...`
-  - `users/{user_id}/generations/{generation_id}/final/...`
-- Worker uploads renders and grids. SCAD code is stored inline in the `steps` table.
-- STL files are **not persisted** — they are compiled on demand from SCAD code via the API.
-- API returns short-lived signed URLs for image assets and compiles STLs on the fly for download/3D viewer.
+### Local (Electron app filesystem)
+- STL files are cached on the user's local machine after first compile.
+- Path convention: `{app_data}/cache/stl/{prompt_id}.stl`
+- If the local file is missing (cache cleared, new machine), the Electron app requests on-demand STL compilation from the backend via `GET /api/prompts/:id/stl`.
+- The backend compiles from `prompts.scad_code` in the DB — the SCAD code is always the source of truth.
 
 ## SSE Event Contracts
 
-- `step`: step number, status, score (if evaluated), feedback, asset URLs.
-- `status`: granular stage updates (`queued`, `generating_scad`, `compiling`, `rendering`, `compositing`, `evaluating`, `revising`, `awaiting_review`).
-- `complete`: final asset URLs + final score.
-- `error`: stage, message, retryable.
+- `status`: current stage + internal step number (`queued`, `generating_scad`, `compiling`, `rendering`, `compositing`, `evaluating`, `revising`).
+- `complete`: final SCAD code + score.
+- `error`: message, retryable flag.
 - `cancelled`: emitted when a generation is cancelled mid-run.
+
+Note: intermediate step details (per-step scores, feedback) are not exposed to the client. The user only sees the current stage and the final result.
 
 ## Auto-Evaluate Behavior
 
 When `auto_evaluate` is **true** (default):
-- After each step's renders are produced, the AI model scores the output via its vision capability.
-- If score >= 8, generation completes. Otherwise the model revises using its own feedback.
-- Fully autonomous loop up to `max_steps`.
+- The API runs the full vision loop internally: generate → render → evaluate → revise.
+- Repeats until score >= 8 or max steps reached.
+- The user sees progress stages via SSE and gets the final best result.
 
 When `auto_evaluate` is **false**:
-- After each step's renders are produced, the worker stops and sets generation status to `awaiting_review`.
-- The user can inspect the renders in the UI, load the STL on demand in the 3D viewer, and provide written feedback.
-- The user triggers `POST /api/generations/:id/continue` with their feedback, which is stored in `steps.user_feedback` and fed to the AI model for the next step.
-- Gives the user full control over the refinement process.
+- Single pass: generate → render → done. No vision evaluation loop.
+- The user gets the result immediately and can submit a follow-up prompt to refine ("make it taller", "add chamfers").
 
 ## Key Risks and Mitigations
 
-- OpenSCAD process failures/timeouts in containers.
+- OpenSCAD process failures/timeouts.
   - Mitigation: explicit timeouts, max 3 compile-retries, stderr-driven repair prompt.
 - OAuth in Electron context.
   - Mitigation: browser-based OAuth + deep-link callback and secure token handoff.
-- Queue/SSE synchronization complexity.
-  - Mitigation: Redis pub/sub channel keyed by generation ID and idempotent status writes in DB.
-- Asset storage growth.
-  - Mitigation: retention policy for non-final assets (configurable per user/generation age).
+- Long-running generation blocking the API.
+  - Mitigation: all steps are async I/O (HTTP calls, child processes, file ops). Node event loop stays free.
+- Local STL cache invalidation.
+  - Mitigation: cache keyed by prompt ID; SCAD code is immutable after completion.
 
 ## MVP Delivery Phases
 
-1. Monorepo scaffolding (`apps`, `services`, `packages`, `infra`).
+1. Monorepo scaffolding (`app`, `services/api`, `packages/shared`, `infra`).
 2. Supabase schema migration, RLS policies, storage bucket, shared TypeScript types.
-3. Express API + auth middleware + Supabase integration.
-4. Worker pipeline with OpenSCAD and image grid composition.
-5. Redis queue + SSE streaming from generation progress.
-6. Desktop UI screens: auth, prompt, live steps, final viewer/history.
-7. Docker Compose wiring + dev scripts + env documentation.
+3. Express API: auth middleware, CRUD routes, generation loop, SSE streaming.
+4. Desktop UI screens: auth, prompt, live progress, STL viewer with local cache, project history.
+5. Docker Compose for API + dev scripts + env documentation.
 
 ## High-Level Flow
 
@@ -234,14 +184,10 @@ When `auto_evaluate` is **false**:
 flowchart TD
 user[DesktopUser] --> desktop[ReactInElectron]
 desktop --> api[ExpressAPI]
-api --> queue[RedisBullMQ]
-queue --> worker[GenerationWorker]
-worker --> openscad[OpenSCADCLI]
-worker -->|evaluate + generate| ai[AIModel]
-worker --> supabase[SupabaseDBStorage]
-worker --> pubsub[RedisPubSub]
-pubsub --> api
-api --> sse[SSEStream]
-sse --> desktop
-desktop -->|continue / cancel| api
+api -->|generate + evaluate| ai[AIModel]
+api --> openscad[OpenSCADCLI]
+api --> supabase[SupabaseDB+Renders]
+api -->|SSE progress| desktop
+desktop -->|local STL cache| fs[LocalFilesystem]
+desktop -->|cache miss| api
 ```
