@@ -10,7 +10,13 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick }) => {
         <nav className="navbar">
             <div className="nav-logo">3DAI</div>
             <div className="nav-actions">
-                <button className="nav-btn signup">Sign up</button>
+                <button
+                  type="button"
+                  className="nav-btn signup"
+                  onClick={onLoginClick}
+                >
+                  Sign up
+                </button>
             </div>
         </nav>
     );

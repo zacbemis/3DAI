@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import LandingPage from './pages/landing_page/LandingPage';
+import { useState } from 'react';
 import LoginPage from './pages/LoginPage/LoginPage';
 import SignupPage from './pages/SignupPage/SignupPage';
 import ChatArea from './components/chat_area/chat_area';
