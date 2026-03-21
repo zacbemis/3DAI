@@ -1,15 +1,32 @@
-import { useState } from 'react';
-import LoginPage from './pages/LoginPage/LoginPage';
-import { LandingPage } from './pages/landing_page/LandingPage';
-import ResetPassword from './pages/ResetPassword/ResetPassword';
+import React, { useState, useEffect } from 'react';
 import SignupPage from './pages/SignupPage/SignupPage';
-import { ChatPage } from './pages/chat/ChatPage';
+import LoginPage from './pages/LoginPage/LoginPage';
+import { LandingPage } from './pages/LandingPage/LandingPage';
+import ResetPassword from './pages/ResetPassword/ResetPassword';
+import UpdatePassword from './pages/UpdatePassword/UpdatePassword'; 
+import ChatArea from './components/chat_area/chat_area';
+import { getSupabaseClient } from './lib/supabaseClient'; 
 import './App.css';
 
-type View = 'landing' | 'login' | 'signup' | 'resetpassword' | 'chat';
+export const App: React.FC = () => {
+    console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
 
-export function App() {
-  const [view, setView] = useState<View>('landing');
+    const [view, setView] = useState<'landing' | 'login' | 'chat' | 'signup' | 'forgotpassword' | 'updatepassword'>('landing');
+
+    useEffect(() => {
+        const supabase = getSupabaseClient();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                console.log("Password recovery link clicked! Switching view...");
+                setView('updatepassword');
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
 
   return (
     <div className="app-viewport">
@@ -35,11 +52,19 @@ export function App() {
         />
       )}
 
-      {view === 'resetpassword' && (
-        <ResetPassword onBackToLogin={() => setView('login')} />
-      )}
+            {view === 'forgotpassword' && (
+                <ResetPassword
+                    onBackToLogin={() => setView('login')} 
+                />
+            )}
 
-      {view === 'chat' && <ChatPage />}
+            {view === 'updatepassword' && (
+                <UpdatePassword 
+                    onComplete={() => setView('login')} 
+                />
+            )}
+
     </div>
   );
 }
+

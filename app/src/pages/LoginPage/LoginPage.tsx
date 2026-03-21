@@ -10,10 +10,18 @@ interface LoginPageProps {
 const LoginPage: React.FC<LoginPageProps> = ({onSignupClick, onLoginSuccess, onForgotPasswordClick }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        // Add your auth logic here
+        
+        // Syntax Validation (Regex)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setErrorMessage("Please enter a valid email (e.g., name@domain.com)");
+            return;
+        }
+
         console.log("Logging in with:", email);
         onLoginSuccess();
     };

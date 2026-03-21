@@ -11,11 +11,19 @@ const SignupPage: React.FC<SignupPageProps> = ({ onBackToLogin, onSignupSuccess 
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const handleSignup = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Syntax Validation (Regex)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setErrorMessage("Please enter a valid email (e.g., name@domain.com)");
+            return;
+        }
         
-        // Add your registration logic here (calling an API, etc.)
+        //registration logic (calling an API, etc.)
         console.log("Registering:", { firstName, lastName, email });
         
         // If registration is successful, trigger the view change in App.tsx
