@@ -1,15 +1,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatPage } from './pages/chat/ChatPage';
-import './index.css';
+import App from './App'; 
 
-const el = document.getElementById('root');
-if (!el) {
-  throw new Error('Missing #root element');
+const container = document.getElementById('app');
+
+if (container) {
+    const root = createRoot(container);
+    root.render(
+        <React.StrictMode>
+            <App />
+        </React.StrictMode>
+    );
 }
-
-createRoot(el).render(
-  <StrictMode>
-    <ChatPage />
-  </StrictMode>,
-);
