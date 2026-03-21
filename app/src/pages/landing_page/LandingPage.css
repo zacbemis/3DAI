@@ -1,0 +1,63 @@
+.landing-page-wrapper {
+    background-image: url('../../assets/landing_page.jpg'); 
+    background-size: cover;
+    background-position: center;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+.hero-title {
+    font-size: 5rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    letter-spacing: -1px;
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.hero-description {
+    font-size: 1.1rem;
+    font-weight: 500; 
+    letter-spacing: 0.15rem; 
+    text-transform: uppercase; 
+    color: rgba(255, 255, 255, 255);
+    margin-bottom: 2.5rem;
+    
+
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    
+
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.start-btn {
+    padding: 14px 40px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+
+    background: linear-gradient(135deg, #646cff 0%, #9089ff 100%);
+    border: none;
+    border-radius: 50px; 
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(100, 108, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.start-btn:hover {
+    transform: translateY(-3px); 
+    box-shadow: 0 15px 30px rgba(100, 108, 255, 0.5);
+    filter: brightness(1.1);
+}
+
+.start-btn:active {
+    transform: translateY(0); 
+}

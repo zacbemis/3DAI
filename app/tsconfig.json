@@ -11,6 +11,9 @@
     "outDir": "dist",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "types": ["node"]
+    "types": ["node"],
+
+    "jsx": "react"
+
   }
 }
