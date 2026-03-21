@@ -7,7 +7,10 @@ import {
   resolveOpenScadBinary,
   sanitizeScadSource,
 } from './openscadExport';
-import { isSupabaseConfigured } from './supabase';
+import { getSupabase, isSupabaseConfigured } from './supabase';
+
+/** Public table for `GET /users`. Override with `SUPABASE_USER_TABLE` — your project has `prompts`, not `profiles`. */
+const USER_TABLE = process.env.SUPABASE_USER_TABLE?.trim() || 'users';
 
 /** `__dirname` is `.../src` — put `stlfile` next to `package.json`, not inside `src/`. */
 const SERVICE_ROOT = path.resolve(__dirname, '..');
@@ -73,7 +76,255 @@ app.get('/health/supabase', (_req, res) => {
   });
 });
 
+/**
+ * Test: read rows from a public table (default `prompts`, or `SUPABASE_USER_TABLE`, or `?table=`).
+ */
+app.get('/users', async (req, res) => {
+  const db = getSupabase();
+  if (!db) {
+    res.status(503).json({
+      error: 'Supabase not configured',
+      hint: 'Set SUPABASE_URL and a key in .env',
+    });
+    return;
+  }
+
+  const tableParam = typeof req.query.table === 'string' ? req.query.table.trim() : '';
+  const table = tableParam || USER_TABLE;
+
+  const { data, error, count } = await db
+    .from(table)
+    .select('*', { count: 'exact' })
+    .limit(50);
+
+  if (error) {
+    res.status(500).json({
+      error: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      table: `users`,
+    });
+    return;
+  }
+
+  const rows = Array.isArray(data) ? data : [];
+  const empty = rows.length === 0;
+
+  res.json({
+    schema: 'public',
+    table,
+    rowCountReturned: rows.length,
+    totalMatchingCount: count ?? null,
+    rows,
+    ...(empty && {
+      diagnostics: {
+        message:
+          'Query succeeded but zero rows are visible to this API key (count is 0 for your filters).',
+        checkInSupabaseDashboard:
+          'Table Editor → public.prompts: if you see rows there but 0 here, Row Level Security is hiding them from the anon key.',
+        fixes: [
+          'Use SUPABASE_SERVICE_ROLE_KEY in this server .env (server-only) to bypass RLS for debugging.',
+          'Or keep the anon key and add an RLS policy: e.g. allow SELECT on public.prompts for anon / authenticated as needed.',
+          'If the table is empty in the dashboard, insert rows or seed data first.',
+        ],
+      },
+    }),
+  });
+});
+
+/**
+ * Create a row in `public.projects`.
+ * Body: { "user_id": "<uuid>", "name": "...", "description"?: "...", "config"?: { ... } }
+ */
+app.post('/projects', async (req, res) => {
+  const db = getSupabase();
+  if (!db) {
+    res.status(503).json({
+      error: 'Supabase not configured',
+      hint: 'Set SUPABASE_URL and a key in .env',
+    });
+    return;
+  }
+
+  const { user_id: userId, name, description, config } = req.body ?? {};
+
+  if (typeof userId !== 'string' || !userId.trim()) {
+    res.status(400).json({
+      error: 'Missing or invalid user_id',
+      hint: 'Send JSON: {"user_id":"<uuid from public.users>","name":"My project"}',
+    });
+    return;
+  }
+  if (typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({
+      error: 'Missing or invalid name',
+      hint: 'name must be a non-empty string',
+    });
+    return;
+  }
+
+  const row: Record<string, unknown> = {
+    user_id: userId.trim(),
+    name: name.trim(),
+  };
+
+  if (description != null) {
+    row.description = typeof description === 'string' ? description : null;
+  }
+
+  if (config !== undefined) {
+    if (config !== null && (typeof config !== 'object' || Array.isArray(config))) {
+      res.status(400).json({
+        error: 'Invalid config',
+        hint: 'config must be a JSON object or null',
+      });
+      return;
+    }
+    if (config !== null) {
+      row.config = config;
+    }
+  }
+
+  const { data, error } = await db.from('projects').insert(row).select().single();
+
+  if (error) {
+    const fkHint =
+      error.code === '23503'
+        ? 'user_id must reference an existing row in public.users (FK projects_user_id_fkey).'
+        : error.hint;
+    res.status(500).json({
+      error: 'Failed to create project',
+      details: error.message,
+      code: error.code,
+      hint: fkHint,
+    });
+    return;
+  }
+
+  res.status(201).json(data);
+});
+
+/**
+ * List all prompts for a project (`prompts.project_id` = `:projectId`).
+ * Example: GET /projects/a1b2c3d4-.../prompts
+ */
+app.get('/projects/:projectId/prompts', async (req, res) => {
+  const db = getSupabase();
+  if (!db) {
+    res.status(503).json({
+      error: 'Supabase not configured',
+      hint: 'Set SUPABASE_URL and a key in .env',
+    });
+    return;
+  }
+
+  const projectId =
+    typeof req.params.projectId === 'string' ? req.params.projectId.trim() : '';
+  if (!projectId) {
+    res.status(400).json({ error: 'Missing project id in path' });
+    return;
+  }
+
+  const { data, error } = await db
+    .from('prompts')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    res.status(500).json({
+      error: 'Failed to fetch prompts',
+      details: error.message,
+      code: error.code,
+      hint: error.hint,
+    });
+    return;
+  }
+
+  const prompts = Array.isArray(data) ? data : [];
+  res.json({
+    project_id: projectId,
+    count: prompts.length,
+    prompts,
+  });
+});
+
+/**
+ * Fetch one prompt by id, scoped to a project (both in JSON body).
+ * Body: { "id": "<prompt uuid>", "project_id": "<project uuid>" } — or use "prompt_id" instead of "id".
+ */
+app.post('/prompts/by-id', async (req, res) => {
+  const db = getSupabase();
+  if (!db) {
+    res.status(503).json({
+      error: 'Supabase not configured',
+      hint: 'Set SUPABASE_URL and a key in .env',
+    });
+    return;
+  }
+
+  const projectId =
+    typeof req.body?.project_id === 'string' ? req.body.project_id.trim() : '';
+  const promptIdRaw =
+    typeof req.body?.id === 'string'
+      ? req.body.id.trim()
+      : typeof req.body?.prompt_id === 'string'
+        ? req.body.prompt_id.trim()
+        : '';
+
+  if (!projectId) {
+    res.status(400).json({
+      error: 'Missing or invalid project_id',
+      hint: 'Send JSON: {"id":"<prompt uuid>","project_id":"<project uuid>"}',
+    });
+    return;
+  }
+  if (!promptIdRaw) {
+    res.status(400).json({
+      error: 'Missing or invalid id',
+      hint: 'Include prompt primary key as "id" or "prompt_id"',
+    });
+    return;
+  }
+
+  const { data, error } = await db
+    .from('prompts')
+    .select('*')
+    .eq('id', promptIdRaw)
+    .eq('project_id', projectId)
+    .maybeSingle();
+
+  if (error) {
+    res.status(500).json({
+      error: 'Failed to fetch prompt',
+      details: error.message,
+      code: error.code,
+      hint: error.hint,
+    });
+    return;
+  }
+
+  if (data == null) {
+    res.status(404).json({
+      error: 'Prompt not found',
+      hint: 'No row with this id for the given project_id (id and project_id must match the same row).',
+    });
+    return;
+  }
+
+  res.json(data);
+});
+
 app.post('/generate', async (req, res, next) => {
+  const db = getSupabase();
+  if (!db) {
+    res.status(503).json({
+      error: 'Supabase not configured',
+      hint: 'Set SUPABASE_URL and a key in .env',
+    });
+    return;
+  }
   try {
     const prompt = req.body?.prompt;
     if (typeof prompt !== 'string' || !prompt.trim()) {
@@ -85,12 +336,53 @@ app.post('/generate', async (req, res, next) => {
     }
     const raw = await generateText(prompt);
     const text = writeOutputScad(raw);
+
+    const now = new Date().toISOString();
+    const row: Record<string, unknown> = {
+      prompt,
+      scad_code: text,
+      model: 'gemini-2.5-flash',
+      status: 'completed',
+      created_at: now,
+      completed_at: now,
+    };
+    if (req.body.user_id != null && req.body.user_id !== '') {
+      row.user_id = req.body.user_id;
+    }
+    if (req.body.project_id != null && req.body.project_id !== '') {
+      row.project_id = req.body.project_id;
+    }
+    if (req.body.max_steps != null) {
+      row.max_steps = req.body.max_steps;
+    }
+    if (req.body.auto_evaluate != null) {
+      row.auto_evaluate = req.body.auto_evaluate;
+    }
+
+    const { error: insertError } = await db.from('prompts').insert(row);
+    if (insertError) {
+      console.error('[prompts insert]', insertError);
+      const fkHint =
+        insertError.code === '23503'
+          ? 'Foreign key: use a `project_id` that already exists in `projects` (and a valid `user_id` if required). Or omit `project_id` / `user_id` in the request body if your table allows NULL for those columns.'
+          : insertError.hint;
+      res.status(500).json({
+        error: 'Failed to save prompt to database',
+        details: insertError.message,
+        code: insertError.code,
+        hint: fkHint,
+      });
+      return;
+    }
+
     const stlOk = await writeOutputStlFromScad();
     respondWithStlOrScad(res, text, stlOk);
   } catch (err) {
     next(err);
   }
 });
+
+
 app.post('/modify', async (req, res, next) => {
     try {
       const prompt = req.body?.prompt;
@@ -148,4 +440,7 @@ app.listen(3000, () => {
     resolveOpenScadBinary(),
   );
   console.log('POST /generate & /modify return STL when export succeeds (see X-Generated-Format).');
+  console.log('POST /projects — create project (user_id, name, …)');
+  console.log('GET /projects/:projectId/prompts — list prompts for a project');
+  console.log('POST /prompts/by-id — body: id, project_id');
 });

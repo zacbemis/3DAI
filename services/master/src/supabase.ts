@@ -5,18 +5,24 @@ dotenv.config();
 
 let cached: SupabaseClient | null = null;
 
+/** Resolve API key from env (prefer service role on the server — bypasses RLS). */
+function resolveSupabaseKey(): string | undefined {
+  return (
+    process.env.SUPABASE_SECRET?.trim()
+  );
+}
+
 /**
  * Server-side Supabase client.
  * Set in `.env`:
  * - `SUPABASE_URL` — Project URL (Settings → API)
- * - `SUPABASE_SERVICE_ROLE_KEY` — for trusted backend only (bypasses RLS), **never** expose to clients
- *   OR `SUPABASE_ANON_KEY` — respects RLS (use with policies suited to server use)
+ * - Prefer `SUPABASE_SERVICE_ROLE_KEY` on this API (bypasses RLS). **Never** expose it to the browser.
+ * - Or `SUPABASE_ANON_KEY` — RLS applies; empty reads usually mean missing policies.
+ * - Also supported: `SUPABASE_KEY` / `SUPABASE_SECRET` (same as above, project-specific naming).
  */
 export function getSupabase(): SupabaseClient | null {
   const url = process.env.SUPABASE_URL?.trim();
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ??
-    process.env.SUPABASE_ANON_KEY?.trim();
+  const key = resolveSupabaseKey();
 
   if (!url || !key) {
     return null;
@@ -27,6 +33,9 @@ export function getSupabase(): SupabaseClient | null {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
+      },
+      db: {
+        schema: 'public',
       },
     });
   }
