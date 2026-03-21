@@ -1,16 +1,15 @@
-import React from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import LandingPage from './pages/landing_page/LandingPage';
-import ChatArea from './components/chat_area/chat_area';
+import { ChatPage } from './chat/ChatPage';
+import './index.css';
 
-// This targets the <div id="app"></div> inside your app/index.html
-const container = document.getElementById('app');
-
-if (container) {
-    const root = createRoot(container);
-    root.render(
-        <React.StrictMode>
-            <ChatArea />
-        </React.StrictMode>
-    );
+const el = document.getElementById('root');
+if (!el) {
+  throw new Error('Missing #root element');
 }
+
+createRoot(el).render(
+  <StrictMode>
+    <ChatPage />
+  </StrictMode>,
+);
