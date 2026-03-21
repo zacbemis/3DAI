@@ -20,26 +20,26 @@ export function ChatPage() {
   const chatMessages = messages.filter((m) => m.role !== 'system');
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
       <main className="relative flex min-h-0 flex-1 flex-col">
         <section className="min-h-0 flex-1 overflow-hidden">
           <StlImportViewer />
         </section>
 
-        <section className="shrink-0 border-t border-zinc-800 bg-zinc-900/20">
+        <section className="shrink-0 border-t border-white/10 bg-white/[0.02]">
           {chatMessages.length > 0 ? (
-            <div className="max-h-24 min-h-0 overflow-y-auto border-b border-zinc-800 px-3">
+            <div className="max-h-24 min-h-0 overflow-y-auto border-b border-white/10 px-3">
               <ChatMessageList messages={chatMessages} emptyMessage="No messages yet." />
             </div>
           ) : null}
 
           <section
-            className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b border-zinc-800 px-3 py-1.5 text-xs text-zinc-400"
+            className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b border-white/10 px-3 py-1.5 text-xs text-zinc-400"
             aria-label="Generation defaults"
           >
             <button
               type="button"
-              className="rounded-md border border-zinc-700 bg-zinc-950/20 px-2 py-0.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-950/35"
+              className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-zinc-300 transition-colors hover:bg-white/10"
               onClick={() => setShowStages((v) => !v)}
               aria-pressed={showStages}
             >
@@ -48,7 +48,7 @@ export function ChatPage() {
             <label className="inline-flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
-                className="size-3.5 rounded border-zinc-600 bg-zinc-900 text-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-0"
+                className="size-3.5 rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:ring-offset-0"
                 checked={autoEvaluate}
                 onChange={(e) => setAutoEvaluate(e.target.checked)}
                 disabled={isBusy}
@@ -61,7 +61,7 @@ export function ChatPage() {
                 type="number"
                 min={1}
                 max={20}
-                className="w-14 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-0.5 text-zinc-100 tabular-nums focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/40 disabled:opacity-50"
+                className="w-14 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-zinc-100 tabular-nums focus:border-indigo-500/60 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 disabled:opacity-50"
                 value={maxSteps}
                 disabled={isBusy}
                 onChange={(e) => {
@@ -80,21 +80,21 @@ export function ChatPage() {
 
         {showStages && (
           <section
-            className="absolute inset-x-0 top-1/2 z-30 mx-3 flex h-[45%] -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/95 backdrop-blur"
+            className="absolute inset-x-0 top-1/2 z-30 mx-3 flex h-[45%] -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0c]/95 backdrop-blur-lg"
             aria-label="Generation progress stages"
           >
-            <div className="shrink-0 flex items-center justify-between gap-3 border-b border-zinc-800 px-4 py-3">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
               <div>
                 <div className="text-sm font-semibold text-zinc-100">
                   Progress stages
                 </div>
-                <div className="text-xs text-zinc-400">
+                <div className="text-xs text-zinc-500">
                   Toggle this panel any time.
                 </div>
               </div>
               <button
                 type="button"
-                className="rounded-md border border-zinc-700 bg-zinc-950/30 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-950/45"
+                className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-zinc-200 transition-colors hover:bg-white/10"
                 onClick={() => setShowStages(false)}
               >
                 Close

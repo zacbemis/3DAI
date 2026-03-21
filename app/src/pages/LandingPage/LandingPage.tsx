@@ -13,7 +13,7 @@ export function LandingPage({
   onLogout,
 }: LandingPageProps) {
   return (
-    <div className="page-fade-in relative flex min-h-screen w-full flex-col overflow-hidden bg-[#0a0a0c] font-sans antialiased">
+    <div className="animate-page-fade-in relative flex min-h-screen w-full flex-col overflow-hidden bg-[#0a0a0c] font-sans antialiased">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${landingBg})` }}

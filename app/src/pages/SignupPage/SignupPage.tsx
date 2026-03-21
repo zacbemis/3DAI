@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import './SignupPage.css';
+import {
+  AuthCard,
+  AuthPageShell,
+  authFieldInputClass,
+  authFieldLabelClass,
+  authLinkClass,
+  authPrimaryButtonClass,
+} from '../../components/auth/auth-layout';
+import { ErrorBanner, LoadingSpinner } from '../../components/feedback';
 
 interface SignupPageProps {
   onBackToLogin: () => void;
@@ -35,82 +43,90 @@ const SignupPage: React.FC<SignupPageProps> = ({
   };
 
   return (
-    <div className="signup-container page-fade-in">
-      <div className="signup-card">
-        <div className="signup-header">
-          <h2>Create Account</h2>
-          <p>Join the 3DAI intelligent assistant</p>
+    <AuthPageShell>
+      <AuthCard variant="wide">
+        <div className="mb-8">
+          <h2 className="mb-2 mt-0 text-[1.8rem] font-semibold leading-tight">Create Account</h2>
+          <p className="text-[0.9rem] text-zinc-500">Join the 3DAI intelligent assistant</p>
         </div>
 
-        <form onSubmit={handleSignup} className="signup-form">
-          <div className="name-row">
-            <div className="input-field">
-              <label>First Name</label>
+        <form onSubmit={handleSignup} className="flex flex-col gap-5">
+          <div className="flex w-full gap-5">
+            <div className="flex flex-1 flex-col gap-2">
+              <label className={`${authFieldLabelClass} font-medium`}>First Name</label>
               <input
                 type="text"
                 placeholder="First Name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
+                className={authFieldInputClass}
                 required
               />
             </div>
-            <div className="input-field">
-              <label>Last Name</label>
+            <div className="flex flex-1 flex-col gap-2">
+              <label className={`${authFieldLabelClass} font-medium`}>Last Name</label>
               <input
                 type="text"
                 placeholder="Last Name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
+                className={authFieldInputClass}
                 required
               />
             </div>
           </div>
 
-          <div className="input-field">
-            <label>Email Address</label>
+          <div className="flex flex-col gap-2">
+            <label className={`${authFieldLabelClass} font-medium`}>Email Address</label>
             <input
               type="email"
               placeholder="example@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className={authFieldInputClass}
               required
             />
           </div>
 
-          <div className="input-field">
-            <label>Password</label>
+          <div className="flex flex-col gap-2">
+            <label className={`${authFieldLabelClass} font-medium`}>Password</label>
             <input
               type="password"
               placeholder="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className={authFieldInputClass}
               required
               minLength={6}
             />
           </div>
 
-          {error && (
-            <p style={{ color: '#f87171', fontSize: '0.85rem', margin: '0.5rem 0' }}>
-              {error}
-            </p>
-          )}
+          <ErrorBanner message={error} onDismiss={() => setError('')} />
 
-          <button type="submit" className="signup-main-btn" disabled={isLoading}>
+          <button
+            type="submit"
+            className={`${authPrimaryButtonClass} mt-2.5 flex w-full items-center justify-center gap-2 text-base`}
+            disabled={isLoading}
+          >
+            {isLoading && <LoadingSpinner size="sm" />}
             {isLoading ? 'Creating…' : 'Create Account'}
           </button>
         </form>
 
-        <div className="signup-footer">
+        <div className="mt-6 text-center text-[0.9rem] text-zinc-500">
           <p>
-            Already have an account?
-            <span className="link-text" onClick={onBackToLogin}>
-              {' '}
+            Already have an account?{' '}
+            <button
+              type="button"
+              className={`${authLinkClass} inline border-0 bg-transparent p-0`}
+              onClick={onBackToLogin}
+            >
               Sign in
-            </span>
+            </button>
           </p>
         </div>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthPageShell>
   );
 };
 

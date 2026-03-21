@@ -30,7 +30,7 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
       </label>
       <textarea
         id="prompt"
-        className="min-h-[4.5rem] w-full resize-y rounded-[10px] border border-zinc-700 bg-zinc-900/80 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/25 disabled:opacity-60"
+        className="min-h-[4.5rem] w-full resize-y rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-500/60 focus:bg-white/[0.06] focus:outline-none focus:ring-1 focus:ring-indigo-500/25 disabled:opacity-60"
         rows={3}
         placeholder="e.g. M4 threaded standoff, 12 mm tall, 6 mm OD flange…"
         value={value}
@@ -49,7 +49,7 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
         </span>
         <button
           type="submit"
-          className="rounded-lg bg-blue-400 px-4 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-blue-300 disabled:cursor-not-allowed disabled:opacity-55"
+          className="rounded-lg bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500 px-5 py-2 text-sm font-semibold text-white shadow-[0_6px_20px_rgba(99,102,241,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(99,102,241,0.35)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0"
           disabled={disabled}
         >
           {disabled ? 'Running…' : 'Send'}
