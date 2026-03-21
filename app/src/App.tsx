@@ -7,6 +7,7 @@ import UpdatePassword from './pages/UpdatePassword/UpdatePassword';
 import { ChatPage } from './pages/chat/ChatPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { getSupabaseClient } from './lib/supabaseClient';
+import { LoadingScreen, ErrorBoundary } from './components/feedback';
 import type { AuthChangeEvent } from '@supabase/supabase-js';
 
 type View =
@@ -70,11 +71,7 @@ function AppRoutes() {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="relative flex h-screen w-screen flex-col animate-app-viewport items-center justify-center">
-        <span className="text-sm text-zinc-500">Loading…</span>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -117,8 +114,10 @@ function AppRoutes() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

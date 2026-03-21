@@ -22,7 +22,7 @@ export function StlImportViewer() {
     if (!container) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a2e);
+    scene.background = new THREE.Color(0x0a0a0c);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
@@ -61,7 +61,7 @@ export function StlImportViewer() {
     controls.maxDistance = 100;
     controlsRef.current = controls;
 
-    const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x333333);
+    const gridHelper = new THREE.GridHelper(10, 10, 0x2a2a2e, 0x1a1a1e);
     gridHelper.position.y = -2;
     scene.add(gridHelper);
 

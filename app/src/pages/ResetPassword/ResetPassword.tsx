@@ -7,6 +7,7 @@ import {
   authFieldLabelClass,
   authPrimaryButtonClass,
 } from '../../components/auth/auth-layout';
+import { ErrorBanner, LoadingSpinner } from '../../components/feedback';
 
 interface ResetPasswordProps {
   onBackToLogin: () => void;
@@ -74,11 +75,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ onBackToLogin }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              {errorMessage && (
-                <div className="rounded border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-left text-sm text-red-300">
-                  {errorMessage}
-                </div>
-              )}
+              <ErrorBanner message={errorMessage} onDismiss={() => setErrorMessage(null)} />
 
               <div className="flex flex-col gap-2">
                 <label className={authFieldLabelClass}>Email Address</label>
@@ -95,22 +92,23 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ onBackToLogin }) => {
 
               <button
                 type="submit"
-                className={`${authPrimaryButtonClass} w-full`}
+                className={`${authPrimaryButtonClass} flex w-full items-center justify-center gap-2`}
                 disabled={isLoading}
               >
-                {isLoading ? 'Sending...' : 'Send Reset Link'}
+                {isLoading && <LoadingSpinner size="sm" />}
+                {isLoading ? 'Sending…' : 'Send Reset Link'}
               </button>
             </form>
           </>
         ) : (
           <div className="animate-page-fade-in px-0 py-5 text-center">
-            <div className="mx-auto mb-5 flex h-[60px] w-[60px] items-center justify-center rounded-full border border-[#4a90e2]/30 bg-[#4a90e2]/15 text-2xl text-[#4a90e2]">
+            <div className="mx-auto mb-5 flex h-[60px] w-[60px] items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/15 text-2xl text-indigo-400">
               <span>✓</span>
             </div>
             <h2 className="mb-2.5 text-[1.8rem] font-semibold">Check your email</h2>
             <p className="mb-8 text-[0.95rem] text-zinc-500">
               If an account exists for <br />
-              <span className="font-medium text-[#4a90e2]">{email}</span>, we sent a reset link.
+              <span className="font-medium text-indigo-400">{email}</span>, we sent a reset link.
             </p>
             <button
               type="button"

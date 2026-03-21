@@ -8,6 +8,7 @@ import {
   authLinkClass,
   authPrimaryButtonClass,
 } from '../../components/auth/auth-layout';
+import { ErrorBanner, LoadingSpinner } from '../../components/feedback';
 
 interface LoginPageProps {
   onSignupClick: () => void;
@@ -82,15 +83,14 @@ const LoginPage: React.FC<LoginPageProps> = ({
             Forget Password?
           </button>
 
-          {error && (
-            <p className="text-[0.85rem] leading-snug text-red-400">{error}</p>
-          )}
+          <ErrorBanner message={error} onDismiss={() => setError('')} />
 
           <button
             type="submit"
-            className={`${authPrimaryButtonClass} mt-2.5 w-full`}
+            className={`${authPrimaryButtonClass} mt-2.5 flex w-full items-center justify-center gap-2`}
             disabled={isLoading}
           >
+            {isLoading && <LoadingSpinner size="sm" />}
             {isLoading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>

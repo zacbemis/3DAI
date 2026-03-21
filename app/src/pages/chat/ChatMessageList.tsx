@@ -7,10 +7,10 @@ interface ChatMessageListProps {
 }
 
 const bubbleStyles: Record<ChatRole, string> = {
-  user: 'self-end border-blue-900/80 bg-blue-950/90 text-zinc-100',
-  assistant: 'self-start border-zinc-700/80 bg-zinc-900/90 text-zinc-100',
+  user: 'self-end border-indigo-500/20 bg-indigo-950/60 text-zinc-100',
+  assistant: 'self-start border-white/10 bg-white/[0.04] text-zinc-100',
   system:
-    'self-start border-dashed border-zinc-700/60 bg-zinc-900/50 text-sm text-zinc-400',
+    'self-start border-dashed border-white/[0.06] bg-white/[0.02] text-sm text-zinc-400',
 };
 
 export function ChatMessageList({ messages, emptyMessage }: ChatMessageListProps) {
@@ -39,7 +39,7 @@ export function ChatMessageList({ messages, emptyMessage }: ChatMessageListProps
         messages.map((m) => (
           <article
             key={m.id}
-            className={`max-w-[85%] rounded-[10px] border px-3.5 py-2.5 ${bubbleStyles[m.role]}`}
+            className={`max-w-[85%] rounded-xl border px-3.5 py-2.5 ${bubbleStyles[m.role]}`}
             data-stage={m.stage ?? undefined}
           >
             <span className="mb-1.5 block text-[0.6875rem] font-medium uppercase tracking-wider text-zinc-500">
