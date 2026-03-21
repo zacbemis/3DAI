@@ -2,10 +2,13 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
+import { getSupabaseClient } from '../lib/supabaseClient';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface AuthUser {
   id: string;
@@ -19,47 +22,68 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, displayName: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// TODO: Replace stub implementations with Supabase auth calls:
-//   - login  → supabase.auth.signInWithPassword({ email, password })
-//   - signup → supabase.auth.signUp({ email, password, options: { data: { full_name } } })
-//   - logout → supabase.auth.signOut()
-//   - Initialise user from supabase.auth.getSession() on mount
-//   - Listen for changes via supabase.auth.onAuthStateChange()
+function mapUser(su: SupabaseUser): AuthUser {
+  return {
+    id: su.id,
+    email: su.email ?? '',
+    display_name:
+      su.user_metadata?.full_name ??
+      su.user_metadata?.name ??
+      null,
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback(async (email: string, _password: string) => {
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ? mapUser(session.user) : null);
+      setIsLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ? mapUser(session.user) : null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Stub: accept any credentials, create a fake user
-      await new Promise((r) => setTimeout(r, 300));
-      setUser({
-        id: crypto.randomUUID(),
+      const { data, error } = await getSupabaseClient().auth.signInWithPassword({
         email,
-        display_name: email.split('@')[0],
+        password,
       });
+      if (error) throw new Error(error.message);
+      if (data.user) setUser(mapUser(data.user));
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const signup = useCallback(
-    async (email: string, _password: string, displayName: string) => {
+    async (email: string, password: string, displayName: string) => {
       setIsLoading(true);
       try {
-        await new Promise((r) => setTimeout(r, 300));
-        setUser({
-          id: crypto.randomUUID(),
+        const { data, error } = await getSupabaseClient().auth.signUp({
           email,
-          display_name: displayName,
+          password,
+          options: { data: { full_name: displayName } },
         });
+        if (error) throw new Error(error.message);
+        if (data.user) setUser(mapUser(data.user));
       } finally {
         setIsLoading(false);
       }
@@ -67,7 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await getSupabaseClient().auth.signOut();
     setUser(null);
   }, []);
 
