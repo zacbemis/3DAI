@@ -1,5 +1,6 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -29,6 +30,15 @@ const createWindow = () => {
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
 };
+
+// Save generated React mesh component (.tsx) under src/components/3dmodels
+ipcMain.handle('save-tsx-component', async (_event, content: string, filename: string) => {
+  const modelsDir = path.join(app.getAppPath(), 'src', 'components', '3dmodels');
+  fs.mkdirSync(modelsDir, { recursive: true });
+  const filePath = path.join(modelsDir, filename);
+  fs.writeFileSync(filePath, content, 'utf8');
+  return { success: true, path: filePath };
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
