@@ -1,0 +1,37 @@
+---
+description: Project-wide conventions for the 3DAI monorepo
+alwaysApply: true
+---
+
+# 3DAI Project Conventions
+
+## Architecture
+
+- Monorepo: `app/` (Electron), `services/api/`, `services/worker/`, `packages/shared/`, `infra/`
+- Shared types live in `packages/shared/` — import from there, never duplicate type definitions
+- Database schema is the source of truth at `infra/supabase/migrations/`
+- Keep `packages/shared/src/schemas/database.ts` in sync with migration SQL
+
+## TypeScript
+
+- Strict mode always enabled
+- Prefer `interface` for object shapes, `type` for unions/intersections
+- No `any` — use `unknown` and narrow with type guards
+- Use `const` by default, `let` only when reassignment is needed, never `var`
+- Prefer named exports over default exports
+- Use path aliases (`@shared/`, `@api/`, `@worker/`) instead of deep relative imports
+
+## Naming
+
+- Files: `kebab-case.ts` for modules, `PascalCase.tsx` for React components
+- Variables/functions: `camelCase`
+- Types/interfaces: `PascalCase`
+- Constants: `SCREAMING_SNAKE_CASE`
+- Database columns: `snake_case` (matches Postgres convention)
+- Enum-like unions: lowercase with underscores matching the DB enum values
+
+## Error Handling
+
+- Always handle errors explicitly — no empty catch blocks
+- Use typed error classes that extend `Error` for domain errors
+- Log errors with context (operation, entity ID, user ID) before rethrowing
