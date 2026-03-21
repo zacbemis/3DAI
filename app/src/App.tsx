@@ -1,37 +1,28 @@
 import { useState } from 'react';
+import { LandingPage } from './pages/landing_page/LandingPage';
 import LoginPage from './pages/LoginPage/LoginPage';
-import SignupPage from './pages/SignupPage/SignupPage';
-import ChatArea from './components/chat_area/chat_area';
+import { ChatPage } from './pages/chat/ChatPage';
 import './App.css';
 
-const App: React.FC = () => {
-    const [view, setView] = useState<'landing' | 'login' | 'chat' | 'signup'>('landing');
+type View = 'landing' | 'login' | 'chat';
 
-    return (
-        <div className="app-viewport">
-            {view === 'landing' && (
-                <LandingPage onLoginClick={() => setView('login')} />
-            )}
-            
-            {view === 'login' && (
-                <LoginPage 
-                    onSignupClick={() => setView('signup')} 
-                    onLoginSuccess={() => setView('chat')} 
-                />
-            )}
+export function App() {
+  const [view, setView] = useState<View>('landing');
 
-            {view === 'signup' && (
-                <SignupPage 
-                    onSignupSuccess={() => setView('login')} 
-                    onBackToLogin={() => setView('login')} 
-                />
-            )}
+  return (
+    <div className="app-viewport">
+      {view === 'landing' && (
+        <LandingPage onLoginClick={() => setView('login')} onChatClick={() => setView('chat')} />
+      )}
 
-            {view === 'chat' && (
-                <ChatArea />
-            )}
-        </div>
-    );
-};
+      {view === 'login' && (
+        <LoginPage
+          onSignupClick={() => setView('landing')}
+          onLoginSuccess={() => setView('chat')}
+        />
+      )}
 
-export default App;
+      {view === 'chat' && <ChatPage />}
+    </div>
+  );
+}
