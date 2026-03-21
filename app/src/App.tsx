@@ -1,15 +1,27 @@
 import { useState } from 'react';
+import LoginPage from './pages/LoginPage/LoginPage';
 import { ChatPage } from './pages/chat/ChatPage';
 import { LandingPage } from './pages/landing_page/LandingPage';
+import './index.css';
+import './App.css';
 
-type Screen = 'landing' | 'chat';
+type View = 'landing' | 'login' | 'chat';
 
 export function App() {
-  const [screen, setScreen] = useState<Screen>('landing');
+  const [view, setView] = useState<View>('landing');
 
-  if (screen === 'chat') {
-    return <ChatPage />;
-  }
-
-  return <LandingPage onGetStarted={() => setScreen('chat')} />;
+  return (
+    <div className="app-viewport">
+      {view === 'landing' && (
+        <LandingPage onLoginClick={() => setView('login')} />
+      )}
+      {view === 'login' && (
+        <LoginPage
+          onBackClick={() => setView('landing')}
+          onLoginSuccess={() => setView('chat')}
+        />
+      )}
+      {view === 'chat' && <ChatPage />}
+    </div>
+  );
 }
