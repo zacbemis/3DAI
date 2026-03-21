@@ -16,13 +16,21 @@ export interface AuthUser {
   display_name: string | null;
 }
 
+export interface SignupResult {
+  needsEmailConfirmation: boolean;
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  /** True only during the initial session restore on app startup. */
+  isInitializing: boolean;
+  /** True during any auth operation (login, signup, etc.). */
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, displayName: string) => Promise<void>;
+  signup: (email: string, password: string, displayName: string) => Promise<SignupResult>;
   logout: () => Promise<void>;
+  resendConfirmation: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -40,14 +48,15 @@ function mapUser(su: SupabaseUser): AuthUser {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ? mapUser(session.user) : null);
-      setIsLoading(false);
+      setIsInitializing(false);
     });
 
     const {
@@ -74,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signup = useCallback(
-    async (email: string, password: string, displayName: string) => {
+    async (email: string, password: string, displayName: string): Promise<SignupResult> => {
       setIsLoading(true);
       try {
         const { data, error } = await getSupabaseClient().auth.signUp({
@@ -83,7 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           options: { data: { full_name: displayName } },
         });
         if (error) throw new Error(error.message);
-        if (data.user) setUser(mapUser(data.user));
+
+        if (data.session && data.user) {
+          setUser(mapUser(data.user));
+          return { needsEmailConfirmation: false };
+        }
+
+        return { needsEmailConfirmation: true };
       } finally {
         setIsLoading(false);
       }
@@ -96,16 +111,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const resendConfirmation = useCallback(async (email: string) => {
+    const { error } = await getSupabaseClient().auth.resend({
+      type: 'signup',
+      email,
+    });
+    if (error) throw new Error(error.message);
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isAuthenticated: user !== null,
+      isInitializing,
       isLoading,
       login,
       signup,
       logout,
+      resendConfirmation,
     }),
-    [user, isLoading, login, signup, logout],
+    [user, isInitializing, isLoading, login, signup, logout, resendConfirmation],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
