@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { generateMeshComponentTsx } from '../../generateMeshComponent';
+import { generateMeshComponentTsx } from '../../generateMeshComponent.js';
 
 const electronAPI = (
   window as unknown as {
@@ -19,8 +19,8 @@ const electronAPI = (
  * STL import preview (vanilla Three.js) + auto-export of generated mesh TSX to disk.
  */
 export function StlImportViewer() {
+  const inputId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState('No file loaded');
 
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -218,13 +218,12 @@ export function StlImportViewer() {
       <div className="toolbar">
         <div className="file-input-wrapper">
           <input
-            ref={fileInputRef}
             type="file"
-            id="file-input"
+            id={inputId}
             accept=".stl"
             onChange={onFileSelect}
           />
-          <label htmlFor="file-input" className="upload-btn">
+          <label htmlFor={inputId} className="upload-btn">
             Choose STL file
           </label>
         </div>
