@@ -19,9 +19,20 @@ type View =
   | 'chat';
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [view, setView] = useState<View>('landing');
   const pendingView = useRef<View | null>(null);
+  const sessionRestored = useRef(false);
+
+  // If the user already has a session on startup, skip landing and go to chat
+  useEffect(() => {
+    if (!isLoading && !sessionRestored.current) {
+      sessionRestored.current = true;
+      if (isAuthenticated) {
+        setView('chat');
+      }
+    }
+  }, [isLoading, isAuthenticated]);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -58,6 +69,14 @@ function AppRoutes() {
   const onLogout = useCallback(() => {
     setView('landing');
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="app-viewport flex items-center justify-center">
+        <span className="text-sm text-zinc-500">Loading…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="app-viewport">
