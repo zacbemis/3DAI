@@ -1,2 +1,10 @@
-// See the Electron documentation for details on how to use preload scripts:
-// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
+import { contextBridge, ipcRenderer } from 'electron';
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  masterRequest: (payload: {
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body?: string;
+  }) => ipcRenderer.invoke('master:request', payload),
+});

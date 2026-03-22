@@ -3,8 +3,10 @@ import { ChatComposer } from './ChatComposer';
 import { ChatMessageList } from './ChatMessageList';
 import { useGenerationChat } from './use-generation-chat';
 import { StlImportViewer } from '../../components/3js_view/StlImportViewer';
+import { useActiveProject } from '../../context/ProjectContext';
 
 export function ChatPage() {
+  const { project, isProjectLoading, error: projectError, startNewProject } = useActiveProject();
   const {
     messages,
     isBusy,
@@ -13,20 +15,30 @@ export function ChatPage() {
     maxSteps,
     setMaxSteps,
     sendPrompt,
-  } = useGenerationChat();
+    stlBuffer,
+  } = useGenerationChat(project);
 
   const [showStages, setShowStages] = useState(false);
   const stageMessages = messages.filter((m) => m.role === 'system');
   const chatMessages = messages.filter((m) => m.role !== 'system');
 
+  const composerDisabled = isBusy || isProjectLoading || !project;
+
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
       <main className="relative flex min-h-0 flex-1 flex-col">
         <section className="min-h-0 flex-1 overflow-hidden">
-          <StlImportViewer />
+          <StlImportViewer
+            stlBuffer={stlBuffer}
+            isGenerating={isBusy}
+            project={project}
+            projectLoading={isProjectLoading}
+            projectError={projectError}
+            onNewProject={startNewProject}
+          />
         </section>
 
-        <section className="shrink-0 border-t border-white/10 bg-white/[0.02]">
+        <section className="shrink-0 border-t border-white/10 bg-white/2">
           {chatMessages.length > 0 ? (
             <div className="max-h-24 min-h-0 overflow-y-auto border-b border-white/10 px-3">
               <ChatMessageList messages={chatMessages} emptyMessage="No messages yet." />
@@ -51,7 +63,7 @@ export function ChatPage() {
                 className="size-3.5 rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:ring-offset-0"
                 checked={autoEvaluate}
                 onChange={(e) => setAutoEvaluate(e.target.checked)}
-                disabled={isBusy}
+                disabled={composerDisabled}
               />
               <span>Auto-evaluate (vision loop)</span>
             </label>
@@ -63,7 +75,7 @@ export function ChatPage() {
                 max={20}
                 className="w-14 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-zinc-100 tabular-nums focus:border-indigo-500/60 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 disabled:opacity-50"
                 value={maxSteps}
-                disabled={isBusy}
+                disabled={composerDisabled}
                 onChange={(e) => {
                   const n = Number.parseInt(e.target.value, 10);
                   if (!Number.isNaN(n))
@@ -74,7 +86,7 @@ export function ChatPage() {
           </section>
 
           <div className="shrink-0 px-3 py-1.5">
-            <ChatComposer onSend={sendPrompt} disabled={isBusy} />
+            <ChatComposer onSend={sendPrompt} disabled={composerDisabled} />
           </div>
         </section>
 
