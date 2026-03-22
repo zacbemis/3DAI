@@ -43,7 +43,6 @@ export function ChatPage() {
   const stageMessages = messages.filter((m) => m.role === 'system');
   const chatMessages = messages.filter((m) => m.role !== 'system');
 
-  const composerDisabled = isBusy || isProjectLoading || !project;
   const currentModel = availableModels.find((m) => m.id === selectedModel);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {

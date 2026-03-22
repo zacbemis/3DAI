@@ -105,11 +105,13 @@ export function lintScad(source: string): LintWarning[] {
 
 /**
  * Format lint warnings as a string suitable for sending to the AI for auto-fix.
+ * Includes both errors and warnings — variable reassignment is a 'warning' but
+ * causes real bugs in OpenSCAD (silently uses only the last assignment).
  */
 export function formatLintErrors(warnings: LintWarning[]): string {
-  const errors = warnings.filter((w) => w.severity === 'error');
-  if (errors.length === 0) return '';
-  return errors
-    .map((w) => `Line ${w.line}: ${w.message}`)
+  const actionable = warnings.filter((w) => w.severity === 'error' || w.severity === 'warning');
+  if (actionable.length === 0) return '';
+  return actionable
+    .map((w) => `Line ${w.line} [${w.severity}]: ${w.message}`)
     .join('\n');
 }

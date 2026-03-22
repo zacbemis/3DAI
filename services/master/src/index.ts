@@ -1,8 +1,15 @@
 import express, { type ErrorRequestHandler, type Response } from 'express';
 import path from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { generateText, modifyText, reviseText, fixText, activeModel, activeProvider, getAvailableModels, resolveModelName } from './ai';
+import {
+  generateText, modifyText, reviseText, fixText, evaluateModel,
+  activeModel, activeProvider, getAvailableModels, resolveModelName,
+  DEFAULT_EVAL_THRESHOLD, DEFAULT_MAX_EVAL_STEPS,
+  type EvaluationResult,
+} from './ai';
+import { buildReviseWithFeedbackPrompt } from './ai/prompts';
 import { lintScad, formatLintErrors } from './scadLint';
+import { renderScadImages } from './scadRender';
 
 console.log(`[AI Backend] Default: ${activeProvider} (${activeModel})`);
 import {
@@ -127,13 +134,19 @@ async function compileWithRetry(
   return { scadText, stlPath: null, exportError: 'Max retries exceeded', retries };
 }
 
+interface StlResponseMeta {
+  retries?: number;
+  evalScore?: number;
+  evalIterations?: number;
+}
+
 /** POST response: binary STL when export succeeds; otherwise 503 (default) or `.scad` text if fallback enabled. */
 function respondWithStlOrScad(
   res: Response,
   scadText: string,
   stlPath: string | null,
   exportError?: string,
-  retries?: number,
+  meta?: StlResponseMeta,
 ): void {
   if (stlPath && existsSync(stlPath)) {
     try {
@@ -142,7 +155,9 @@ function respondWithStlOrScad(
       res.setHeader('Content-Disposition', 'attachment; filename="output.stl"');
       res.setHeader('X-Generated-Format', 'stl');
       res.setHeader('X-Scad-Base64', Buffer.from(scadText, 'utf8').toString('base64'));
-      if (retries && retries > 0) res.setHeader('X-Fix-Retries', String(retries));
+      if (meta?.retries && meta.retries > 0) res.setHeader('X-Fix-Retries', String(meta.retries));
+      if (meta?.evalScore != null) res.setHeader('X-Eval-Score', String(meta.evalScore));
+      if (meta?.evalIterations != null) res.setHeader('X-Eval-Iterations', String(meta.evalIterations));
       res.send(stlData);
       return;
     } catch (err) {
@@ -169,7 +184,7 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Format, X-Scad-Base64, X-Fix-Retries');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Format, X-Scad-Base64, X-Fix-Retries, X-Eval-Score, X-Eval-Iterations');
   // Chromium “Private Network Access” preflight (public → local)
   if (req.headers['access-control-request-private-network'] === 'true') {
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
@@ -491,11 +506,111 @@ app.post('/generate', async (req, res, next) => {
     const requestedModel = typeof req.body?.model === 'string' ? req.body.model.trim() : undefined;
     const modelUsed = resolveModelName(requestedModel);
 
+    const autoEval = req.body?.auto_evaluate === true;
+    const maxEvalSteps = typeof req.body?.max_steps === 'number'
+      ? Math.min(Math.max(req.body.max_steps, 1), 10)
+      : DEFAULT_MAX_EVAL_STEPS;
+    const scoreThreshold = typeof req.body?.score_threshold === 'number'
+      ? req.body.score_threshold
+      : DEFAULT_EVAL_THRESHOLD;
+
     const raw = await generateText(prompt, requestedModel);
     const initialScad = writeOutputScad(raw);
 
-    const { scadText: text, stlPath, exportError, retries } = await compileWithRetry(initialScad, requestedModel);
+    let { scadText, stlPath, exportError, retries } = await compileWithRetry(initialScad, requestedModel);
     if (retries > 0) console.log(`[generate] Needed ${retries} auto-fix retries`);
+
+    let totalRetries = retries;
+    let evalScore: number | undefined;
+    let evalIterations = 0;
+
+    // Self-evaluation loop: render → score → revise → recompile until quality threshold is met
+    if (autoEval && stlPath) {
+      interface ScoredVersion {
+        scadText: string;
+        stlPath: string;
+        score: number;
+        retries: number;
+      }
+      let bestVersion: ScoredVersion | null = null;
+
+      for (let step = 0; step < maxEvalSteps; step++) {
+        console.log(`[eval] Step ${step + 1}/${maxEvalSteps}: rendering images...`);
+
+        const images = await renderScadImages(OUTPUT_SCAD_PATH);
+        if (images.length === 0) {
+          console.warn('[eval] No images rendered — skipping evaluation (headless display issue?)');
+          break;
+        }
+
+        console.log(`[eval] Step ${step + 1}/${maxEvalSteps}: evaluating with ${images.length} images...`);
+        let evalResult: EvaluationResult;
+        try {
+          evalResult = await evaluateModel(scadText, prompt, images, requestedModel);
+        } catch (e) {
+          console.warn('[eval] Evaluation call failed:', e);
+          break;
+        }
+
+        evalIterations = step + 1;
+        evalScore = evalResult.overall;
+        console.log(
+          `[eval] Step ${step + 1}: score=${evalResult.overall}/10 ` +
+          `(acc=${evalResult.accuracy} comp=${evalResult.completeness} geo=${evalResult.geometry} ` +
+          `prop=${evalResult.proportions} print=${evalResult.printability})`,
+        );
+        console.log(`[eval] Critique: ${evalResult.critique}`);
+
+        if (stlPath && (!bestVersion || evalResult.overall > bestVersion.score)) {
+          bestVersion = { scadText, stlPath, score: evalResult.overall, retries: totalRetries };
+        }
+
+        if (evalResult.overall >= scoreThreshold) {
+          console.log(`[eval] Score ${evalResult.overall} >= threshold ${scoreThreshold} — accepting.`);
+          break;
+        }
+
+        if (step >= maxEvalSteps - 1) {
+          console.log(`[eval] Max steps reached. Using best version (score=${bestVersion?.score ?? 'none'}).`);
+          break;
+        }
+
+        console.log(`[eval] Score ${evalResult.overall} < ${scoreThreshold} — revising (suggestions: ${evalResult.suggestions.join('; ')})`);
+
+        try {
+          const revisePromptText = buildReviseWithFeedbackPrompt(
+            prompt, scadText, evalResult.critique, evalResult.suggestions,
+          );
+          const revised = await reviseText(scadText, revisePromptText, images, requestedModel);
+          const revisedScad = writeOutputScad(revised);
+
+          const compiled = await compileWithRetry(revisedScad, requestedModel);
+          if (compiled.retries > 0) console.log(`[eval-revise] Needed ${compiled.retries} auto-fix retries`);
+          totalRetries += compiled.retries;
+
+          if (compiled.stlPath) {
+            scadText = compiled.scadText;
+            stlPath = compiled.stlPath;
+          } else {
+            console.warn('[eval-revise] Revision failed to compile — keeping previous version');
+            break;
+          }
+        } catch (e) {
+          console.warn('[eval-revise] Revision failed:', e);
+          break;
+        }
+      }
+
+      // Use the highest-scoring version if the last iteration scored lower
+      if (bestVersion && evalScore != null && evalScore < bestVersion.score) {
+        console.log(`[eval] Last score ${evalScore} < best ${bestVersion.score} — reverting to best version`);
+        scadText = bestVersion.scadText;
+        stlPath = bestVersion.stlPath;
+        evalScore = bestVersion.score;
+        totalRetries = bestVersion.retries;
+        writeOutputScad(scadText);
+      }
+    }
 
     if (db) {
       const uid = req.body?.user_id;
@@ -509,7 +624,7 @@ app.post('/generate', async (req, res, next) => {
         const now = new Date().toISOString();
         const row: Record<string, unknown> = {
           prompt,
-          scad_code: text,
+          scad_code: scadText,
           model: modelUsed,
           status: stlPath ? 'completed' : 'failed',
           user_id: uid.trim(),
@@ -517,12 +632,9 @@ app.post('/generate', async (req, res, next) => {
           created_at: now,
           completed_at: now,
         };
-        if (req.body.max_steps != null) {
-          row.max_steps = req.body.max_steps;
-        }
-        if (req.body.auto_evaluate != null) {
-          row.auto_evaluate = req.body.auto_evaluate;
-        }
+        if (req.body.max_steps != null) row.max_steps = req.body.max_steps;
+        if (req.body.auto_evaluate != null) row.auto_evaluate = req.body.auto_evaluate;
+        if (evalScore != null) row.eval_score = evalScore;
 
         const { error: insertError } = await db.from('prompts').insert(row);
         if (insertError) {
@@ -533,7 +645,11 @@ app.post('/generate', async (req, res, next) => {
       }
     }
 
-    respondWithStlOrScad(res, text, stlPath, exportError, retries);
+    respondWithStlOrScad(res, scadText, stlPath, exportError, {
+      retries: totalRetries,
+      evalScore,
+      evalIterations: evalIterations > 0 ? evalIterations : undefined,
+    });
   } catch (err) {
     next(err);
   }
@@ -563,7 +679,7 @@ app.post('/modify', async (req, res, next) => {
       const initialScad = writeOutputScad(raw);
       const { scadText: text, stlPath, exportError, retries } = await compileWithRetry(initialScad, requestedModel);
       if (retries > 0) console.log(`[modify] Needed ${retries} auto-fix retries`);
-      respondWithStlOrScad(res, text, stlPath, exportError, retries);
+      respondWithStlOrScad(res, text, stlPath, exportError, { retries });
     } catch (err) {
       next(err);
     }
@@ -602,7 +718,7 @@ app.post('/revise', async (req, res, next) => {
     const initialScad = writeOutputScad(raw);
     const { scadText: text, stlPath, exportError, retries } = await compileWithRetry(initialScad, requestedModel);
     if (retries > 0) console.log(`[revise] Needed ${retries} auto-fix retries`);
-    respondWithStlOrScad(res, text, stlPath, exportError, retries);
+    respondWithStlOrScad(res, text, stlPath, exportError, { retries });
   } catch (err) {
     next(err);
   }
