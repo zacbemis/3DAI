@@ -6,6 +6,7 @@ import SignupPage from './pages/SignupPage/SignupPage';
 import UpdatePassword from './pages/UpdatePassword/UpdatePassword';
 import { ChatPage } from './pages/chat/ChatPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProjectProvider } from './context/ProjectContext';
 import { getSupabaseClient } from './lib/supabaseClient';
 import { LoadingScreen, ErrorBoundary } from './components/feedback';
 import type { AuthChangeEvent } from '@supabase/supabase-js';
@@ -115,7 +116,9 @@ export function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <AppRoutes />
+        <ProjectProvider>
+          <AppRoutes />
+        </ProjectProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

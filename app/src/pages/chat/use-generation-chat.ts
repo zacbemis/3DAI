@@ -1,34 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import type { ChatMessage, GenerationStage } from './chat-types';
-import { STAGE_LABELS } from './stage-labels';
-
-const DEMO_SEQUENCE: GenerationStage[] = [
-  'queued',
-  'generating_scad',
-  'compiling',
-  'rendering',
-  'compositing',
-  'evaluating',
-  'awaiting_review',
-];
-
-function delay(ms: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal.aborted) {
-      reject(new DOMException('Aborted', 'AbortError'));
-      return;
-    }
-    const t = window.setTimeout(() => {
-      signal.removeEventListener('abort', onAbort);
-      resolve();
-    }, ms);
-    const onAbort = () => {
-      window.clearTimeout(t);
-      reject(new DOMException('Aborted', 'AbortError'));
-    };
-    signal.addEventListener('abort', onAbort, { once: true });
-  });
-}
+import type { ChatMessage } from './chat-types';
+import { masterFetch, readMasterApiError } from '../../config/master-api';
+import type { ActiveProject } from '../../context/ProjectContext';
 
 export interface UseGenerationChatResult {
   messages: ChatMessage[];
@@ -38,13 +11,16 @@ export interface UseGenerationChatResult {
   maxSteps: number;
   setMaxSteps: (value: number) => void;
   sendPrompt: (text: string) => void;
+  /** Latest STL from master `POST /generate` when `X-Generated-Format: stl` */
+  stlBuffer: ArrayBuffer | null;
 }
 
-export function useGenerationChat(): UseGenerationChatResult {
+export function useGenerationChat(activeProject: ActiveProject | null): UseGenerationChatResult {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [autoEvaluate, setAutoEvaluate] = useState(true);
   const [maxSteps, setMaxSteps] = useState(5);
+  const [stlBuffer, setStlBuffer] = useState<ArrayBuffer | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const sendPrompt = useCallback(
@@ -66,57 +42,80 @@ export function useGenerationChat(): UseGenerationChatResult {
 
       setMessages((prev) => [...prev, userMessage]);
       setIsBusy(true);
+      // Keep previous STL on screen until the new request returns a replacement (or error)
 
       void (async () => {
         try {
-          const pipelineNote = autoEvaluate
-            ? `Auto-evaluate on · max steps ${maxSteps}`
-            : `Pause for review after each step · max steps ${maxSteps}`;
+          const body: Record<string, unknown> = {
+            prompt: trimmed,
+            max_steps: maxSteps,
+            auto_evaluate: autoEvaluate,
+          };
 
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: `Starting generation (${pipelineNote}). Live updates will stream here via SSE once the API is wired.`,
-              createdAt: Date.now(),
-            },
-          ]);
+          if (activeProject?.userId) body.user_id = activeProject.userId;
+          if (activeProject?.id) body.project_id = activeProject.id;
+          const uidEnv = import.meta.env.VITE_MASTER_USER_ID?.trim();
+          const pidEnv = import.meta.env.VITE_MASTER_PROJECT_ID?.trim();
+          if (body.user_id == null && uidEnv) body.user_id = uidEnv;
+          if (body.project_id == null && pidEnv) body.project_id = pidEnv;
 
-          for (const stage of DEMO_SEQUENCE) {
-            await delay(stage === 'awaiting_review' ? 400 : 550, signal);
+          const res = await masterFetch('/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            signal,
+          });
+
+          const format = res.headers.get('X-Generated-Format');
+
+          if (!res.ok) {
+            const errText = await readMasterApiError(res);
             setMessages((prev) => [
               ...prev,
               {
                 id: crypto.randomUUID(),
-                role: 'system',
-                content: STAGE_LABELS[stage],
+                role: 'assistant',
+                content: `Generation failed (${res.status}): ${errText}`,
                 createdAt: Date.now(),
-                stage,
               },
             ]);
+            return;
           }
 
-          await delay(300, signal);
+          if (format === 'stl') {
+            const buf = await res.arrayBuffer();
+            setStlBuffer(buf);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                role: 'assistant',
+                content: 'STL ready — preview updated above.',
+                createdAt: Date.now(),
+              },
+            ]);
+            return;
+          }
+
+          const scadText = await res.text();
           setMessages((prev) => [
             ...prev,
             {
               id: crypto.randomUUID(),
               role: 'assistant',
-              content:
-                'Preview only: hook `GET /api/generations/:id/stream` to replace this with real step + asset events.',
+              content: `OpenSCAD returned as text (no STL). First 500 chars:\n${scadText.slice(0, 500)}${scadText.length > 500 ? '…' : ''}`,
               createdAt: Date.now(),
             },
           ]);
         } catch (e) {
           if (e instanceof DOMException && e.name === 'AbortError') return;
-          console.error('generation chat pipeline', e);
+          console.error('generation chat', e);
           setMessages((prev) => [
             ...prev,
             {
               id: crypto.randomUUID(),
               role: 'assistant',
-              content: 'Something went wrong running the local preview.',
+              content: `Request failed: ${e instanceof Error ? e.message : String(e)}`,
               createdAt: Date.now(),
             },
           ]);
@@ -126,7 +125,7 @@ export function useGenerationChat(): UseGenerationChatResult {
         }
       })();
     },
-    [autoEvaluate, isBusy, maxSteps],
+    [activeProject?.id, activeProject?.userId, autoEvaluate, isBusy, maxSteps],
   );
 
   return {
@@ -137,5 +136,6 @@ export function useGenerationChat(): UseGenerationChatResult {
     maxSteps,
     setMaxSteps,
     sendPrompt,
+    stlBuffer,
   };
 }

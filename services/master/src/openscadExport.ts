@@ -84,13 +84,16 @@ export async function exportScadToStl(
     }
     return { ok: true, stlPath: absStl };
   } catch (err: unknown) {
-    const e = err as NodeJS.ErrnoException & { stderr?: Buffer };
+    const e = err as NodeJS.ErrnoException & { stderr?: Buffer; stdout?: Buffer };
     const stderr = e.stderr?.toString?.().trim() ?? '';
+    const stdout = e.stdout?.toString?.().trim() ?? '';
     const hint =
       e.code === 'ENOENT'
         ? 'OpenSCAD not found. Install it or set OPENSCAD_PATH to the executable.'
         : '';
-    const msg = [stderr || e.message, hint].filter(Boolean).join(' ');
+    // OpenSCAD often prints parse errors on stdout
+    const detail = [stderr, stdout].filter(Boolean).join('\n') || e.message;
+    const msg = [detail, hint].filter(Boolean).join('\n');
     return { ok: false, message: msg || 'OpenSCAD export failed.' };
   }
 }

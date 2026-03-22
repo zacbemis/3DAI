@@ -3,6 +3,7 @@ import { ChatComposer } from './ChatComposer';
 import { ChatMessageList } from './ChatMessageList';
 import { useGenerationChat } from './use-generation-chat';
 import { StlImportViewer } from '../../components/3js_view/StlImportViewer';
+import { useActiveProject } from '../../context/ProjectContext';
 
 const CHAT_MIN_PX = 80;
 const CHAT_MIN_VIEWER_PX = 100;
@@ -13,13 +14,15 @@ function getChatMaxPx(): number {
 }
 
 export function ChatPage() {
+  const { project, isProjectLoading, error: projectError, startNewProject } = useActiveProject();
   const {
     messages,
     isBusy,
     maxSteps,
     setMaxSteps,
     sendPrompt,
-  } = useGenerationChat();
+    stlBuffer,
+  } = useGenerationChat(project);
 
   const [showStages, setShowStages] = useState(false);
   const [chatHeightPx, setChatHeightPx] = useState(96);
@@ -58,7 +61,14 @@ export function ChatPage() {
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
       <main className="relative flex min-h-0 flex-1 flex-col">
         <section className="min-h-0 flex-1 overflow-hidden">
-          <StlImportViewer />
+          <StlImportViewer
+            stlBuffer={stlBuffer}
+            isGenerating={isBusy}
+            project={project}
+            projectLoading={isProjectLoading}
+            projectError={projectError}
+            onNewProject={startNewProject}
+          />
         </section>
 
         <button
@@ -98,7 +108,7 @@ export function ChatPage() {
                 max={20}
                 className="w-14 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-zinc-100 tabular-nums focus:border-indigo-500/60 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 disabled:opacity-50"
                 value={maxSteps}
-                disabled={isBusy}
+                disabled={composerDisabled}
                 onChange={(e) => {
                   const n = Number.parseInt(e.target.value, 10);
                   if (!Number.isNaN(n))
@@ -109,7 +119,7 @@ export function ChatPage() {
           </section>
 
           <div className="shrink-0 px-3 py-1.5">
-            <ChatComposer onSend={sendPrompt} disabled={isBusy} />
+            <ChatComposer onSend={sendPrompt} disabled={composerDisabled} />
           </div>
         </section>
         {showStages && (
