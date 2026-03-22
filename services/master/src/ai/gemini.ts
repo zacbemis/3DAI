@@ -1,7 +1,12 @@
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { getSkillsPrompt } from '../skills';
-import { SCAD_SYSTEM_PROMPT, MODIFY_SYSTEM_PROMPT, stripCodeFences } from './prompts';
+import {
+  buildGenerateSystemPrompt,
+  buildModifySystemPrompt,
+  formatTechniqueGuidance,
+  stripCodeFences,
+} from './prompts';
 
 dotenv.config();
 
@@ -28,13 +33,15 @@ async function rateLimit(): Promise<void> {
 export async function generateText(prompt: string): Promise<string> {
   await rateLimit();
   const skills = getSkillsPrompt(prompt);
-  const techniqueBlock = skills
-    ? `\n\nTECHNIQUE GUIDANCE (proven patterns for this type of object):\n${skills}\n\nUse the code patterns above as your starting template.`
-    : '';
+  const techniqueBlock = formatTechniqueGuidance(skills);
+
+  const systemPrompt = buildGenerateSystemPrompt();
 
   const result = await gemini.models.generateContent({
     model: MODEL,
-    contents: `${SCAD_SYSTEM_PROMPT}${techniqueBlock}\n\nCreate an OpenSCAD model of: ${prompt}`,
+    contents: techniqueBlock
+      ? `${systemPrompt}\n\nCreate an OpenSCAD model of: ${prompt}\n${techniqueBlock}`
+      : `${systemPrompt}\n\nCreate an OpenSCAD model of: ${prompt}`,
   });
 
   return stripCodeFences(result.text ?? '');
@@ -43,11 +50,17 @@ export async function generateText(prompt: string): Promise<string> {
 export async function modifyText(original: string, prompt: string): Promise<string> {
   await rateLimit();
   const skills = getSkillsPrompt(prompt);
-  const techniqueBlock = skills ? `\n\nTECHNIQUE GUIDANCE:\n${skills}\n` : '';
+  const techniqueBlock = formatTechniqueGuidance(skills);
+
+  const systemPrompt = buildModifySystemPrompt();
+
+  const userContent = techniqueBlock
+    ? `${techniqueBlock}\n\nOriginal file:\n${original}\n\nModification: ${prompt}`
+    : `Original file:\n${original}\n\nModification: ${prompt}`;
 
   const result = await gemini.models.generateContent({
     model: MODEL,
-    contents: `${MODIFY_SYSTEM_PROMPT}${techniqueBlock}\n\nOriginal file:\n${original}\n\nModification: ${prompt}`,
+    contents: `${systemPrompt}\n\n${userContent}`,
   });
 
   return stripCodeFences(result.text ?? '');

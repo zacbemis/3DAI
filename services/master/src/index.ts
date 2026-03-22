@@ -1,9 +1,9 @@
 import express, { type ErrorRequestHandler, type Response } from 'express';
 import path from 'node:path';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { generateText, modifyText, activeModel, activeProvider } from './ai';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { generateText, modifyText, activeModel, activeProvider, getAvailableModels, resolveModelName } from './ai';
 
-console.log(`[AI Backend] Using: ${activeProvider} (${activeModel})`);
+console.log(`[AI Backend] Default: ${activeProvider} (${activeModel})`);
 import {
   exportScadToStl,
   resolveOpenScadBinary,
@@ -68,24 +68,16 @@ function respondWithStlOrScad(
   exportError?: string,
 ): void {
   if (stlPath && existsSync(stlPath)) {
-    res.setHeader('Content-Type', 'model/stl');
-    res.setHeader('Content-Disposition', 'attachment; filename="output.stl"');
-    res.setHeader('X-Generated-Format', 'stl');
-    res.sendFile(path.resolve(stlPath), (err) => {
-      if (err && !res.headersSent) {
-        res.removeHeader('X-Generated-Format');
-        if (!ALLOW_SCAD_FALLBACK) {
-          res.status(503).json({
-            error: 'Failed to read STL file after export',
-            details: err.message,
-          });
-          return;
-        }
-        res.setHeader('X-Generated-Format', 'scad');
-        res.type('text/plain').send(scadText);
-      }
-    });
-    return;
+    try {
+      const stlData = readFileSync(path.resolve(stlPath));
+      res.setHeader('Content-Type', 'model/stl');
+      res.setHeader('Content-Disposition', 'attachment; filename="output.stl"');
+      res.setHeader('X-Generated-Format', 'stl');
+      res.send(stlData);
+      return;
+    } catch (err) {
+      console.error('[STL read error]', err);
+    }
   }
   if (!ALLOW_SCAD_FALLBACK) {
     res.status(503).json({
@@ -132,6 +124,15 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (_req, res) => {
   res.send('Hello World');
+});
+
+/** Available AI models (based on configured API keys). */
+app.get('/models', (_req, res) => {
+  const models = getAvailableModels();
+  res.json({
+    default: activeModel,
+    models,
+  });
 });
 
 /** Health: Supabase connector configured (does not validate network). */
@@ -417,10 +418,12 @@ app.post('/generate', async (req, res, next) => {
       });
       return;
     }
-    const raw = await generateText(prompt);
+    const requestedModel = typeof req.body?.model === 'string' ? req.body.model.trim() : undefined;
+    const modelUsed = resolveModelName(requestedModel);
+
+    const raw = await generateText(prompt, requestedModel);
     const text = writeOutputScad(raw);
 
-    // Save to Supabase when configured. `prompts` requires `user_id` + `project_id` (FK + NOT NULL).
     if (db) {
       const uid = req.body?.user_id;
       const pid = req.body?.project_id;
@@ -434,7 +437,7 @@ app.post('/generate', async (req, res, next) => {
         const row: Record<string, unknown> = {
           prompt,
           scad_code: text,
-          model: activeModel,
+          model: modelUsed,
           status: 'completed',
           user_id: uid.trim(),
           project_id: pid.trim(),
@@ -483,7 +486,8 @@ app.post('/modify', async (req, res, next) => {
         });
         return;
       }
-      const raw = await modifyText(original, prompt);
+      const requestedModel = typeof req.body?.model === 'string' ? req.body.model.trim() : undefined;
+      const raw = await modifyText(original, prompt, requestedModel);
       const text = writeOutputScad(raw);
       const { path: stlPath, exportError } = await compileStl(text);
       respondWithStlOrScad(res, text, stlPath, exportError);
