@@ -3,6 +3,7 @@ import { ChatComposer } from './ChatComposer';
 import { ChatMessageList } from './ChatMessageList';
 import { useGenerationChat } from './use-generation-chat';
 import { StlImportViewer } from '../../components/3js_view/StlImportViewer';
+import { ProjectsSidebar } from '../../components/projects/ProjectsSidebar';
 import { useActiveProject } from '../../context/ProjectContext';
 
 const CHAT_MIN_PX = 80;
@@ -57,13 +58,22 @@ export function ChatPage() {
     };
   }, []);
 
+  const viewerBusy = isBusy || isPreviewLoading;
+  const generatingMessage = isPreviewLoading
+    ? 'Loading last saved model for this project…'
+    : isBusy
+      ? 'Generating… previous model stays until the new STL is ready.'
+      : undefined;
+
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
-      <main className="relative flex min-h-0 flex-1 flex-col">
+    <div className="relative flex h-full min-h-0 flex-row overflow-hidden bg-[#0a0a0c] text-zinc-100">
+      <ProjectsSidebar />
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <section className="min-h-0 flex-1 overflow-hidden">
           <StlImportViewer
             stlBuffer={stlBuffer}
-            isGenerating={isBusy}
+            isGenerating={viewerBusy}
+            generatingMessage={generatingMessage}
             project={project}
             projectLoading={isProjectLoading}
             projectError={projectError}

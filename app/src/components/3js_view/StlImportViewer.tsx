@@ -8,8 +8,10 @@ import type { ActiveProject } from '../../context/ProjectContext';
 
 export interface StlImportViewerProps {
   stlBuffer: ArrayBuffer | null;
-  /** True while a new `/generate` is in flight — previous STL stays visible until replaced */
+  /** True while loading — previous STL stays visible until replaced */
   isGenerating?: boolean;
+  /** Override bottom banner copy (defaults to generation message) */
+  generatingMessage?: string;
   project?: ActiveProject | null;
   projectLoading?: boolean;
   projectError?: string | null;
@@ -27,6 +29,7 @@ function shortId(id: string): string {
 export function StlImportViewer({
   stlBuffer,
   isGenerating,
+  generatingMessage,
   project,
   projectLoading,
   projectError,
@@ -208,8 +211,9 @@ export function StlImportViewer({
       </div>
       {isGenerating ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-3">
-          <div className="rounded-full border border-indigo-500/40 bg-zinc-950/90 px-4 py-2 text-xs font-medium text-indigo-200 shadow-lg backdrop-blur-sm">
-            Generating… previous model stays until the new STL is ready.
+          <div className="max-w-lg rounded-full border border-indigo-500/40 bg-zinc-950/90 px-4 py-2 text-center text-xs font-medium text-indigo-200 shadow-lg backdrop-blur-sm">
+            {generatingMessage ??
+              'Working… previous model stays on screen until the new STL is ready.'}
           </div>
         </div>
       ) : null}
