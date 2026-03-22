@@ -193,16 +193,7 @@ export function StlImportViewer({
               <div className="font-mono text-[10px] text-zinc-500" title={project.id}>
                 {shortId(project.id)}
               </div>
-              {onNewProject ? (
-                <button
-                  type="button"
-                  className="mt-1 rounded border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-zinc-200 transition-colors hover:bg-white/10 disabled:opacity-50"
-                  disabled={projectLoading}
-                  onClick={() => void onNewProject()}
-                >
-                  New project
-                </button>
-              ) : null}
+             
             </div>
           ) : (
             <div className="text-zinc-500">No project — sign in to save prompts.</div>

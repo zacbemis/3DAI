@@ -19,6 +19,7 @@ export function ChatPage() {
   const {
     messages,
     isBusy,
+    isPreviewLoading,
     maxSteps,
     setMaxSteps,
     sendPrompt,
@@ -59,6 +60,8 @@ export function ChatPage() {
   }, []);
 
   const viewerBusy = isBusy || isPreviewLoading;
+  const composerDisabled =
+    isBusy || isPreviewLoading || isProjectLoading || project == null;
   const generatingMessage = isPreviewLoading
     ? 'Loading last saved model for this project…'
     : isBusy
