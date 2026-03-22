@@ -1,14 +1,9 @@
 import express, { type ErrorRequestHandler, type Response } from 'express';
 import path from 'node:path';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { generateText as geminiGenerate, modifyText as geminiModify } from './gemini/gemini';
-import { generateText as claudeGenerate, modifyText as claudeModify } from './gemini/claude';
+import { generateText, modifyText, activeModel, activeProvider } from './ai';
 
-// Auto-detect backend: ANTHROPIC_API_KEY → Claude, GEMINI_API_KEY → Gemini
-const useClaudeBackend = !!process.env.ANTHROPIC_API_KEY;
-const generateText = useClaudeBackend ? claudeGenerate : geminiGenerate;
-const modifyText = useClaudeBackend ? claudeModify : geminiModify;
-console.log(`[AI Backend] Using: ${useClaudeBackend ? 'Claude (claude-sonnet-4-6)' : 'Gemini (gemini-2.5-flash)'}`);
+console.log(`[AI Backend] Using: ${activeProvider} (${activeModel})`);
 import {
   exportScadToStl,
   resolveOpenScadBinary,
@@ -356,7 +351,7 @@ app.post('/generate', async (req, res, next) => {
       const row: Record<string, unknown> = {
         prompt,
         scad_code: text,
-        model: useClaudeBackend ? 'claude-sonnet-4-6' : 'gemini-2.5-flash',
+        model: activeModel,
         status: 'completed',
         created_at: now,
         completed_at: now,
