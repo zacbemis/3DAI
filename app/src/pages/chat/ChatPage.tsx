@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatComposer } from './ChatComposer';
 import { ChatMessageList } from './ChatMessageList';
 import { useGenerationChat } from './use-generation-chat';
-import { StlImportViewer } from '../../components/3js_view/StlImportViewer';
+import { StlImportViewer, type StlViewerHandle } from '../../components/3js_view/StlImportViewer';
 import { ProjectsSidebar } from '../../components/projects/ProjectsSidebar';
 import { useActiveProject } from '../../context/ProjectContext';
 
@@ -16,6 +16,7 @@ function getChatMaxPx(): number {
 
 export function ChatPage() {
   const { project, isProjectLoading, error: projectError, startNewProject } = useActiveProject();
+  const viewerRef = useRef<StlViewerHandle>(null);
   const {
     messages,
     isBusy,
@@ -24,8 +25,10 @@ export function ChatPage() {
     setSelectedModel,
     availableModels,
     sendPrompt,
+    rerun,
+    canRerun,
     stlBuffer,
-  } = useGenerationChat(project);
+  } = useGenerationChat(project, viewerRef);
 
   const [showStages, setShowStages] = useState(false);
   const [showModelMenu, setShowModelMenu] = useState(false);
@@ -100,6 +103,7 @@ export function ChatPage() {
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <section className="min-h-0 flex-1 overflow-hidden">
           <StlImportViewer
+            ref={viewerRef}
             stlBuffer={stlBuffer}
             isGenerating={viewerBusy}
             generatingMessage={generatingMessage}
@@ -180,6 +184,23 @@ export function ChatPage() {
                 </div>
               )}
             </div>
+
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs transition-colors ${
+                canRerun
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                  : 'border-white/10 bg-white/5 text-zinc-500 cursor-not-allowed'
+              }`}
+              disabled={!canRerun}
+              onClick={rerun}
+              title="Re-generate with screenshot feedback from multiple angles"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="size-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311V15a.75.75 0 01-1.5 0v-3.5a.75.75 0 01.75-.75H8.5a.75.75 0 010 1.5H7.058l.164.163a4 4 0 006.693-1.793.75.75 0 011.397.554zM4.688 8.576a5.5 5.5 0 019.201-2.466l.312.311V5a.75.75 0 011.5 0v3.5a.75.75 0 01-.75.75H11.5a.75.75 0 010-1.5h1.442l-.164-.163a4 4 0 00-6.693 1.793.75.75 0 01-1.397-.554z" clipRule="evenodd" />
+              </svg>
+              Rerun
+            </button>
 
             <button
               type="button"

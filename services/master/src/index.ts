@@ -1,7 +1,8 @@
 import express, { type ErrorRequestHandler, type Response } from 'express';
 import path from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { generateText, modifyText, activeModel, activeProvider, getAvailableModels, resolveModelName } from './ai';
+import { generateText, modifyText, reviseText, fixText, activeModel, activeProvider, getAvailableModels, resolveModelName } from './ai';
+import { lintScad, formatLintErrors } from './scadLint';
 
 console.log(`[AI Backend] Default: ${activeProvider} (${activeModel})`);
 import {
@@ -37,6 +38,8 @@ function writeOutputScad(contents: string): string {
   return clean;
 }
 
+const MAX_FIX_RETRIES = 3;
+
 /**
  * Compile SCAD → STL, using the local cache when possible.
  */
@@ -60,12 +63,77 @@ async function compileStl(
   return { path: cachedPath };
 }
 
+/**
+ * Lint → compile → if errors, ask AI to fix → retry. Returns final SCAD + compile result.
+ */
+async function compileWithRetry(
+  initialScad: string,
+  modelId?: string,
+): Promise<{ scadText: string; stlPath: string | null; exportError?: string; retries: number }> {
+  let scadText = initialScad;
+  let retries = 0;
+
+  for (let attempt = 0; attempt <= MAX_FIX_RETRIES; attempt++) {
+    // Static lint check
+    const lintErrors = formatLintErrors(lintScad(scadText));
+    if (lintErrors && attempt < MAX_FIX_RETRIES) {
+      console.log(`[lint] Errors found (attempt ${attempt + 1}), asking AI to fix:\n${lintErrors}`);
+      try {
+        const fixed = await fixText(scadText, `Static analysis errors:\n${lintErrors}`, modelId);
+        scadText = sanitizeScadSource(fixed);
+        writeFileSync(OUTPUT_SCAD_PATH, scadText, 'utf8');
+        retries++;
+        continue;
+      } catch (e) {
+        console.warn('[lint-fix] AI fix failed, proceeding with original:', e);
+      }
+    }
+
+    // Compile
+    const cached = stlCache.lookup(scadText);
+    if (cached) {
+      console.log('[stl-cache] HIT — serving from cache');
+      return { scadText, stlPath: cached, retries };
+    }
+
+    mkdirSync(path.dirname(OUTPUT_SCAD_PATH), { recursive: true });
+    writeFileSync(OUTPUT_SCAD_PATH, scadText, 'utf8');
+
+    const result = await exportScadToStl(OUTPUT_SCAD_PATH, OUTPUT_STL_PATH);
+
+    if (result.ok) {
+      const cachedPath = stlCache.store(scadText, result.stlPath);
+      console.log(`[stl-cache] MISS — compiled and cached at ${cachedPath}${retries > 0 ? ` (after ${retries} fix${retries > 1 ? 'es' : ''})` : ''}`);
+      return { scadText, stlPath: cachedPath, retries };
+    }
+
+    // Compilation failed — ask AI to fix if retries remain
+    if (attempt < MAX_FIX_RETRIES) {
+      console.log(`[compile-retry] Attempt ${attempt + 1}/${MAX_FIX_RETRIES} failed, asking AI to fix:\n${result.message.slice(0, 500)}`);
+      try {
+        const fixed = await fixText(scadText, result.message, modelId);
+        scadText = sanitizeScadSource(fixed);
+        retries++;
+      } catch (e) {
+        console.warn('[compile-fix] AI fix call failed:', e);
+        return { scadText, stlPath: null, exportError: result.message, retries };
+      }
+    } else {
+      console.warn(`[compile-retry] All ${MAX_FIX_RETRIES} retries exhausted`);
+      return { scadText, stlPath: null, exportError: result.message, retries };
+    }
+  }
+
+  return { scadText, stlPath: null, exportError: 'Max retries exceeded', retries };
+}
+
 /** POST response: binary STL when export succeeds; otherwise 503 (default) or `.scad` text if fallback enabled. */
 function respondWithStlOrScad(
   res: Response,
   scadText: string,
   stlPath: string | null,
   exportError?: string,
+  retries?: number,
 ): void {
   if (stlPath && existsSync(stlPath)) {
     try {
@@ -73,6 +141,8 @@ function respondWithStlOrScad(
       res.setHeader('Content-Type', 'model/stl');
       res.setHeader('Content-Disposition', 'attachment; filename="output.stl"');
       res.setHeader('X-Generated-Format', 'stl');
+      res.setHeader('X-Scad-Base64', Buffer.from(scadText, 'utf8').toString('base64'));
+      if (retries && retries > 0) res.setHeader('X-Fix-Retries', String(retries));
       res.send(stlData);
       return;
     } catch (err) {
@@ -99,6 +169,7 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Generated-Format, X-Scad-Base64, X-Fix-Retries');
   // Chromium “Private Network Access” preflight (public → local)
   if (req.headers['access-control-request-private-network'] === 'true') {
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
@@ -117,9 +188,8 @@ function isUuidString(v: unknown): v is string {
   return typeof v === 'string' && UUID_RE.test(v.trim());
 }
 
-// Parse JSON bodies (application/json) — required for req.body on POST
-app.use(express.json());
-// Optional: parse HTML forms (application/x-www-form-urlencoded)
+// Parse JSON bodies — limit raised for base64 image payloads (revise endpoint)
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (_req, res) => {
@@ -422,7 +492,10 @@ app.post('/generate', async (req, res, next) => {
     const modelUsed = resolveModelName(requestedModel);
 
     const raw = await generateText(prompt, requestedModel);
-    const text = writeOutputScad(raw);
+    const initialScad = writeOutputScad(raw);
+
+    const { scadText: text, stlPath, exportError, retries } = await compileWithRetry(initialScad, requestedModel);
+    if (retries > 0) console.log(`[generate] Needed ${retries} auto-fix retries`);
 
     if (db) {
       const uid = req.body?.user_id;
@@ -438,7 +511,7 @@ app.post('/generate', async (req, res, next) => {
           prompt,
           scad_code: text,
           model: modelUsed,
-          status: 'completed',
+          status: stlPath ? 'completed' : 'failed',
           user_id: uid.trim(),
           project_id: pid.trim(),
           created_at: now,
@@ -460,8 +533,7 @@ app.post('/generate', async (req, res, next) => {
       }
     }
 
-    const { path: stlPath, exportError } = await compileStl(text);
-    respondWithStlOrScad(res, text, stlPath, exportError);
+    respondWithStlOrScad(res, text, stlPath, exportError, retries);
   } catch (err) {
     next(err);
   }
@@ -488,13 +560,53 @@ app.post('/modify', async (req, res, next) => {
       }
       const requestedModel = typeof req.body?.model === 'string' ? req.body.model.trim() : undefined;
       const raw = await modifyText(original, prompt, requestedModel);
-      const text = writeOutputScad(raw);
-      const { path: stlPath, exportError } = await compileStl(text);
-      respondWithStlOrScad(res, text, stlPath, exportError);
+      const initialScad = writeOutputScad(raw);
+      const { scadText: text, stlPath, exportError, retries } = await compileWithRetry(initialScad, requestedModel);
+      if (retries > 0) console.log(`[modify] Needed ${retries} auto-fix retries`);
+      respondWithStlOrScad(res, text, stlPath, exportError, retries);
     } catch (err) {
       next(err);
     }
   });
+
+app.post('/revise', async (req, res, next) => {
+  try {
+    const prompt = req.body?.prompt;
+    const scadCode = req.body?.scad_code;
+    const images = req.body?.images;
+
+    if (typeof scadCode !== 'string' || !scadCode.trim()) {
+      res.status(400).json({
+        error: 'Missing or invalid "scad_code"',
+        hint: 'Send the current OpenSCAD source in scad_code',
+      });
+      return;
+    }
+    if (typeof prompt !== 'string' || !prompt.trim()) {
+      res.status(400).json({
+        error: 'Missing or invalid "prompt"',
+        hint: 'Send the original generation prompt',
+      });
+      return;
+    }
+    if (!Array.isArray(images) || images.length === 0) {
+      res.status(400).json({
+        error: 'Missing or empty "images" array',
+        hint: 'Send base64 data-URL screenshots: ["data:image/png;base64,..."]',
+      });
+      return;
+    }
+
+    const requestedModel = typeof req.body?.model === 'string' ? req.body.model.trim() : undefined;
+    const raw = await reviseText(scadCode, prompt, images, requestedModel);
+    const initialScad = writeOutputScad(raw);
+    const { scadText: text, stlPath, exportError, retries } = await compileWithRetry(initialScad, requestedModel);
+    if (retries > 0) console.log(`[revise] Needed ${retries} auto-fix retries`);
+    respondWithStlOrScad(res, text, stlPath, exportError, retries);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Invalid JSON (e.g. unquoted keys like {prompt: "x"}) fails in express.json() before the route runs
 const jsonBodyErrorHandler: ErrorRequestHandler = (err, _req, res, next) => {
@@ -532,6 +644,7 @@ app.listen(3000, () => {
   );
   console.log(`STL cache: ${stlCache.size()} entries (30-day TTL, hourly cleanup)`);
   console.log('POST /compile-scad — compile saved SCAD to STL (no LLM)');
+  console.log('POST /revise — vision-assisted rerun with screenshots');
   console.log('POST /generate & /modify return STL when export succeeds (see X-Generated-Format).');
   console.log('POST /projects — create project (user_id, name, …)');
   console.log('GET /projects/:projectId/prompts — list prompts for a project');
