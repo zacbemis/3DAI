@@ -1,12 +1,24 @@
 import { getTechniqueIndex, getRulesAndLimitations } from '../skills';
 
-const BASE_IDENTITY = `You are an expert OpenSCAD programmer that generates production-ready, printable 3D models.`;
+const BASE_IDENTITY = `You are an expert OpenSCAD programmer that generates production-ready, printable 3D models.
+
+APPROACH — always follow this mental process before writing code:
+1. DECOMPOSE: Break the object into distinct geometric components (body, features, cutouts, details).
+2. DIMENSION: Choose realistic real-world dimensions in mm. Reference actual objects — a coffee mug is ~80mm tall, a phone is ~150mm tall, a pencil is 190mm long.
+3. PLAN MODULES: Decide which OpenSCAD module handles each component. Plan how they assemble (union, difference, intersection).
+4. BUILD BOTTOM-UP: Implement simpler modules first, then compose them. Use hull() for smooth transitions, minkowski() for uniform rounding.
+5. VALIDATE: Check that difference() subtractions are larger than the base at the cut point, wall thicknesses are >= 1.5mm for printability, and no geometry floats disconnected.`;
 
 const STRUCTURE_RULES = `STRUCTURE:
 - One module per component, assembly at the end
-- Descriptive variable names for all dimensions
+- Descriptive variable names for all dimensions at the top of the file
 - Keep models 20-120mm and watertight/manifold
-- Never assign CSG to variables. Nest operators directly.`;
+- Never assign CSG to variables. Nest operators directly.
+- Use hull() between primitives for smooth organic transitions
+- Use minkowski() with a sphere for uniform edge rounding (but remember it adds the sphere radius to all dimensions)
+- Prefer rotate_extrude() for rotationally symmetric parts
+- Use linear_extrude() with polygon() for complex 2D profiles
+- Always center the final assembly at the origin`;
 
 const FEW_SHOT_EXAMPLES = `EXAMPLES:
 
@@ -80,7 +92,57 @@ module thread_helix() {
 
 hex_head();
 shaft();
-thread_helix();`;
+thread_helix();
+
+User: "a rounded box with a snap-fit lid"
+Output:
+$fn = 120;
+
+box_w = 80;
+box_d = 60;
+box_h = 40;
+wall = 2.5;
+corner_r = 5;
+lid_h = 12;
+lip_h = 4;
+lip_clearance = 0.3;
+snap_bump = 0.8;
+
+module rounded_box(w, d, h, r) {
+    hull() {
+        for (x = [r, w - r])
+            for (y = [r, d - r])
+                translate([x, y, 0])
+                    cylinder(r = r, h = h);
+    }
+}
+
+module box_body() {
+    difference() {
+        rounded_box(box_w, box_d, box_h, corner_r);
+        translate([wall, wall, wall])
+            rounded_box(box_w - 2 * wall, box_d - 2 * wall, box_h, corner_r - wall);
+    }
+}
+
+module lid() {
+    translate([0, 0, box_h + 1]) {
+        difference() {
+            rounded_box(box_w, box_d, lid_h, corner_r);
+            translate([wall, wall, wall])
+                rounded_box(box_w - 2 * wall, box_d - 2 * wall, lid_h, corner_r - wall);
+        }
+        translate([wall + lip_clearance, wall + lip_clearance, -lip_h])
+            difference() {
+                rounded_box(box_w - 2 * wall - 2 * lip_clearance, box_d - 2 * wall - 2 * lip_clearance, lip_h, corner_r - wall);
+                translate([wall, wall, -0.1])
+                    rounded_box(box_w - 4 * wall - 2 * lip_clearance, box_d - 4 * wall - 2 * lip_clearance, lip_h + 0.2, max(corner_r - 2 * wall, 1));
+            }
+    }
+}
+
+box_body();
+lid();`;
 
 const OUTPUT_RULES = `OUTPUT: Only valid OpenSCAD code. No explanation, no markdown fences.`;
 
@@ -136,7 +198,10 @@ Rules:
 2. Apply the requested change precisely and minimally.
 3. Keep $fn = 120 and all existing modules/variables unless asked to change them.
 4. The output must be the full file, not a diff or partial snippet.
-5. Do not add comments explaining what changed.`,
+5. Do not add comments explaining what changed.
+6. When adding new geometry, ensure it connects to or properly intersects with existing geometry — no floating parts.
+7. When modifying dimensions, propagate changes to dependent values (e.g. if a body gets wider, cutouts and features should adjust).
+8. Maintain wall thickness >= 1.5mm everywhere for printability.`,
   ];
 
   if (rules) parts.push(rules);
@@ -199,17 +264,89 @@ The user will provide:
 
 Your job: look at the screenshots, compare them to the original intent, identify what is wrong or could be improved, and output a COMPLETE revised .scad file.
 
+Common issues to look for in screenshots:
+- Proportions that don't match the intended object (too tall/short/wide/thin)
+- Missing features that were in the prompt but don't appear in the render
+- Geometry artifacts: holes where there shouldn't be, self-intersecting surfaces, disconnected parts
+- Symmetry problems: parts that should be symmetric but aren't
+- Thickness issues: walls too thin to print, or features that are solid when they should be hollow
+
 Rules:
 1. Fix geometry issues visible in the screenshots (wrong proportions, missing features, artifacts).
 2. Keep working parts intact — only change what needs fixing.
 3. Keep $fn = 120 and maintain clean module structure.
 4. Output ONLY the full .scad file — no explanation, no markdown fences.
-5. Do not add comments explaining what changed.`,
+5. Do not add comments explaining what changed.
+6. If the model fundamentally misses the prompt intent (e.g. a vase when a box was requested), rebuild from scratch rather than patching.`,
   ];
 
   if (rules) parts.push(rules);
 
   return parts.join('\n\n');
+}
+
+/**
+ * Build the system prompt for self-evaluation scoring.
+ * Returns structured JSON — no extended thinking needed.
+ */
+export function buildEvaluateSystemPrompt(): string {
+  return `You are a quality-assurance expert for 3D-printable OpenSCAD models.
+
+You will receive:
+1. The original text prompt describing the desired object
+2. The generated OpenSCAD source code
+3. Rendered images of the compiled model from 4 angles (front, right, top, perspective)
+
+Your job: evaluate how well the generated model matches the user's intent.
+
+Score each dimension 1–10:
+- accuracy: Does the 3D shape match the described object? Would a person recognize it?
+- completeness: Are ALL features mentioned in the prompt present? (e.g. "with a handle" → handle must exist)
+- geometry: Is the geometry clean? No stray faces, self-intersections, paper-thin walls, or disconnected floating parts.
+- proportions: Are the relative sizes realistic? (e.g. a mug handle shouldn't be bigger than the mug body)
+- printability: Could this successfully 3D print? Minimum wall thickness ~1.5mm, no impossible overhangs, manifold mesh.
+
+Compute "overall" as the weighted average: accuracy×3 + completeness×2 + geometry×1 + proportions×2 + printability×1, divided by 9, rounded to nearest integer.
+
+If overall < 7, provide SPECIFIC, ACTIONABLE suggestions — not vague advice. Reference exact modules, dimensions, or geometry operations that need changing.
+
+Respond with ONLY valid JSON (no markdown fences, no explanation):
+{
+  "overall": <1-10>,
+  "accuracy": <1-10>,
+  "completeness": <1-10>,
+  "geometry": <1-10>,
+  "proportions": <1-10>,
+  "printability": <1-10>,
+  "critique": "<2-3 sentences: what is wrong and why>",
+  "suggestions": ["<specific fix 1>", "<specific fix 2>"]
+}`;
+}
+
+/**
+ * Build a revision prompt that includes the evaluator's critique and suggestions.
+ */
+export function buildReviseWithFeedbackPrompt(
+  prompt: string,
+  scadCode: string,
+  critique: string,
+  suggestions: string[],
+): string {
+  const suggestionList = suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n');
+  return `Original prompt: ${prompt}
+
+Current OpenSCAD code:
+\`\`\`openscad
+${scadCode}
+\`\`\`
+
+EVALUATOR FEEDBACK:
+${critique}
+
+REQUIRED FIXES:
+${suggestionList}
+
+Examine the screenshots above, then apply the evaluator's feedback. Output the COMPLETE revised .scad file.`;
 }
 
 export function stripCodeFences(text: string): string {

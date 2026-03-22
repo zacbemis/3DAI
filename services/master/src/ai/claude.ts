@@ -5,9 +5,11 @@ import {
   buildModifySystemPrompt,
   buildFixSystemPrompt,
   buildReviseSystemPrompt,
+  buildEvaluateSystemPrompt,
   formatTechniqueGuidance,
   stripCodeFences,
 } from './prompts';
+import type { EvaluationResult } from './types';
 
 let client: Anthropic | null = null;
 
@@ -28,7 +30,12 @@ export async function generateText(prompt: string): Promise<string> {
 
   const response = await getClient().messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 16384,
+    temperature: 1,
+    thinking: {
+      type: 'enabled',
+      budget_tokens: 4096,
+    },
     system: [
       {
         type: 'text' as const,
@@ -45,6 +52,11 @@ export async function generateText(prompt: string): Promise<string> {
       },
     ],
   });
+
+  const thinkingBlock = response.content.find((b) => b.type === 'thinking');
+  if (thinkingBlock && thinkingBlock.type === 'thinking') {
+    console.log(`[Claude] Thinking: ${(thinkingBlock.thinking ?? '').slice(0, 200)}...`);
+  }
 
   const block = response.content.find((b) => b.type === 'text');
   if (!block || block.type !== 'text') throw new Error('No text in Claude response');
@@ -73,7 +85,12 @@ export async function modifyText(original: string, prompt: string): Promise<stri
 
   const response = await getClient().messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 16384,
+    temperature: 1,
+    thinking: {
+      type: 'enabled',
+      budget_tokens: 4096,
+    },
     system: [
       {
         type: 'text' as const,
@@ -94,7 +111,12 @@ export async function fixText(brokenScad: string, errorOutput: string): Promise<
 
   const response = await getClient().messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 16384,
+    temperature: 1,
+    thinking: {
+      type: 'enabled',
+      budget_tokens: 2048,
+    },
     system: [
       {
         type: 'text' as const,
@@ -151,7 +173,12 @@ export async function reviseText(
 
   const response = await getClient().messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 16384,
+    temperature: 1,
+    thinking: {
+      type: 'enabled',
+      budget_tokens: 4096,
+    },
     system: [
       {
         type: 'text' as const,
@@ -171,6 +198,53 @@ export async function reviseText(
   }
 
   return stripCodeFences(block.text);
+}
+
+export async function evaluateModel(
+  scadCode: string,
+  prompt: string,
+  imageDataUrls: string[],
+): Promise<EvaluationResult> {
+  const systemPrompt = buildEvaluateSystemPrompt();
+
+  const contentBlocks: Anthropic.Messages.ContentBlockParam[] = [];
+
+  for (const dataUrl of imageDataUrls) {
+    const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+    if (!match) continue;
+    contentBlocks.push({
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: match[1] as 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp',
+        data: match[2],
+      },
+    });
+  }
+
+  contentBlocks.push({
+    type: 'text',
+    text: `Original prompt: ${prompt}\n\nOpenSCAD source code:\n\`\`\`openscad\n${scadCode}\n\`\`\``,
+  });
+
+  const response = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    temperature: 0.3,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: contentBlocks }],
+  });
+
+  const block = response.content.find((b) => b.type === 'text');
+  if (!block || block.type !== 'text') throw new Error('No text in Claude eval response');
+
+  if (response.usage) {
+    const u = response.usage as unknown as Record<string, number>;
+    console.log(`[Claude eval] ${u.input_tokens} in / ${u.output_tokens} out`);
+  }
+
+  const jsonStr = block.text.replace(/^```json?\n?/m, '').replace(/\n?```$/m, '').trim();
+  return JSON.parse(jsonStr) as EvaluationResult;
 }
 
 export const modelName = MODEL;

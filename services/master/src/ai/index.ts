@@ -92,11 +92,29 @@ export async function reviseText(
   return geminiRevise(original, prompt, imageDataUrls);
 }
 
+export async function evaluateModel(
+  scadCode: string,
+  prompt: string,
+  imageDataUrls: string[],
+  modelId?: string,
+): Promise<import('./types').EvaluationResult> {
+  const provider = resolveProvider(modelId);
+  if (provider === 'claude') {
+    const m = await loadClaude();
+    return m.evaluateModel(scadCode, prompt, imageDataUrls);
+  }
+  const { evaluateModel: geminiEval } = await import('./gemini');
+  return geminiEval(scadCode, prompt, imageDataUrls);
+}
+
 export function resolveModelName(modelId?: string): string {
   if (!modelId) return getDefaultModel();
   const info = ALL_MODELS.find((m) => m.id === modelId);
   return info?.id ?? modelId;
 }
+
+export type { EvaluationResult } from './types';
+export { DEFAULT_EVAL_THRESHOLD, DEFAULT_MAX_EVAL_STEPS } from './types';
 
 export const activeModel = getDefaultModel();
 export const activeProvider = hasClaudeKey ? 'Claude' : 'Gemini';

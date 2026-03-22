@@ -18,6 +18,8 @@ export interface UseGenerationChatResult {
   messages: ChatMessage[];
   isBusy: boolean;
   isPreviewLoading: boolean;
+  maxSteps: number;
+  setMaxSteps: (n: number) => void;
   selectedModel: string;
   setSelectedModel: (id: string) => void;
   availableModels: ModelInfo[];
@@ -35,7 +37,7 @@ export function useGenerationChat(
   const [isBusy, setIsBusy] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [autoEvaluate] = useState(true);
-  const [maxSteps] = useState(5);
+  const [maxSteps, setMaxSteps] = useState(5);
   const [selectedModel, setSelectedModel] = useState('');
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [stlBuffer, setStlBuffer] = useState<ArrayBuffer | null>(null);
@@ -208,16 +210,22 @@ export function useGenerationChat(
             lastPromptRef.current = trimmed;
 
             const fixRetries = parseInt(res.headers.get('X-Fix-Retries') ?? '0', 10);
+            const evalScore = res.headers.get('X-Eval-Score');
+            const evalIters = res.headers.get('X-Eval-Iterations');
             const buf = await res.arrayBuffer();
             setStlBuffer(buf);
+
+            const parts: string[] = ['STL ready — preview updated above.'];
+            if (evalScore) parts.push(`Quality score: ${evalScore}/10`);
+            if (evalIters) parts.push(`(${evalIters} eval round${evalIters === '1' ? '' : 's'})`);
+            if (fixRetries > 0) parts.push(`Auto-fixed ${fixRetries} compilation error${fixRetries > 1 ? 's' : ''}.`);
+
             setMessages((prev) => [
               ...prev,
               {
                 id: crypto.randomUUID(),
                 role: 'assistant',
-                content: fixRetries > 0
-                  ? `STL ready — preview updated above. (auto-fixed ${fixRetries} compilation error${fixRetries > 1 ? 's' : ''})`
-                  : 'STL ready — preview updated above.',
+                content: parts.join(' '),
                 createdAt: Date.now(),
               },
             ]);
@@ -369,6 +377,8 @@ export function useGenerationChat(
     messages,
     isBusy,
     isPreviewLoading,
+    maxSteps,
+    setMaxSteps,
     selectedModel,
     setSelectedModel,
     availableModels,
