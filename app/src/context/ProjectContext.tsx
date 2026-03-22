@@ -16,15 +16,21 @@ export interface ActiveProject {
   name: string;
   userId: string;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 interface ProjectContextValue {
   project: ActiveProject | null;
-  /** Resolving session + creating or restoring the Supabase project row */
+  /** All projects owned by the signed-in user (newest first) */
+  projects: ActiveProject[];
   isProjectLoading: boolean;
+  isProjectsListLoading: boolean;
   error: string | null;
-  /** Clears sessionStorage and creates a new project (same user) */
   startNewProject: () => Promise<void>;
+  /** Reload `projects` from Supabase */
+  refreshProjects: () => Promise<void>;
+  /** Switch active project (persists id in sessionStorage) */
+  selectProject: (projectId: string) => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -40,7 +46,7 @@ async function fetchProjectById(
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('projects')
-    .select('id, name, user_id, created_at')
+    .select('id, name, user_id, created_at, updated_at')
     .eq('id', projectId)
     .eq('user_id', userId)
     .maybeSingle();
@@ -51,6 +57,7 @@ async function fetchProjectById(
     name: data.name,
     userId: data.user_id,
     createdAt: data.created_at,
+    updatedAt: data.updated_at,
   };
 }
 
@@ -60,7 +67,7 @@ async function insertProject(userId: string): Promise<ActiveProject> {
   const { data, error } = await supabase
     .from('projects')
     .insert({ user_id: userId, name })
-    .select('id, name, user_id, created_at')
+    .select('id, name, user_id, created_at, updated_at')
     .single();
 
   if (error) throw new Error(error.message);
@@ -69,6 +76,7 @@ async function insertProject(userId: string): Promise<ActiveProject> {
     name: data.name,
     userId: data.user_id,
     createdAt: data.created_at,
+    updatedAt: data.updated_at,
   };
 }
 
@@ -83,75 +91,135 @@ function shouldIgnoreAuthEvent(event: AuthChangeEvent): boolean {
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<ActiveProject | null>(null);
+  const [projects, setProjects] = useState<ActiveProject[]>([]);
   const [isProjectLoading, setIsProjectLoading] = useState(true);
+  const [isProjectsListLoading, setIsProjectsListLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastUserIdRef = useRef<string | null>(null);
 
-  const runProjectBootstrap = useCallback(async (event: AuthChangeEvent, session: Session | null) => {
-    if (shouldIgnoreAuthEvent(event)) {
+  const refreshProjects = useCallback(async () => {
+    const supabase = getSupabaseClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const uid = session?.user?.id;
+    if (!uid) {
+      setProjects([]);
       return;
     }
-
-    if (!session?.user) {
-      if (lastUserIdRef.current) {
-        sessionStorage.removeItem(storageKey(lastUserIdRef.current));
-        lastUserIdRef.current = null;
-      }
-      setProject(null);
-      setError(null);
-      setIsProjectLoading(false);
-      return;
-    }
-
-    const uid = session.user.id;
-    lastUserIdRef.current = uid;
-    const key = storageKey(uid);
-
-    if (event !== 'SIGNED_IN' && event !== 'INITIAL_SESSION') {
-      setIsProjectLoading(false);
-      return;
-    }
-
+    setIsProjectsListLoading(true);
     try {
-      setIsProjectLoading(true);
-      setError(null);
+      const { data, error: qErr } = await supabase
+        .from('projects')
+        .select('id, name, user_id, created_at, updated_at')
+        .eq('user_id', uid)
+        .order('updated_at', { ascending: false });
+      if (qErr) throw new Error(qErr.message);
+      const rows = data ?? [];
+      setProjects(
+        rows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          userId: r.user_id,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        })),
+      );
+    } catch (e) {
+      console.error('[refreshProjects]', e);
+    } finally {
+      setIsProjectsListLoading(false);
+    }
+  }, []);
 
-      if (event === 'INITIAL_SESSION') {
+  const selectProject = useCallback(async (projectId: string) => {
+    const supabase = getSupabaseClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const uid = session?.user?.id;
+    if (!uid) return;
+    const p = await fetchProjectById(uid, projectId);
+    if (!p) {
+      setError('Project not found or access denied.');
+      return;
+    }
+    sessionStorage.setItem(storageKey(uid), p.id);
+    setProject(p);
+    setError(null);
+  }, []);
+
+  const runProjectBootstrap = useCallback(
+    async (event: AuthChangeEvent, session: Session | null) => {
+      if (shouldIgnoreAuthEvent(event)) {
+        return;
+      }
+
+      if (!session?.user) {
+        if (lastUserIdRef.current) {
+          sessionStorage.removeItem(storageKey(lastUserIdRef.current));
+          lastUserIdRef.current = null;
+        }
+        setProject(null);
+        setProjects([]);
+        setError(null);
+        setIsProjectLoading(false);
+        return;
+      }
+
+      const uid = session.user.id;
+      lastUserIdRef.current = uid;
+      const key = storageKey(uid);
+
+      if (event !== 'SIGNED_IN' && event !== 'INITIAL_SESSION') {
+        setIsProjectLoading(false);
+        return;
+      }
+
+      try {
+        setIsProjectLoading(true);
+        setError(null);
+
+        if (event === 'INITIAL_SESSION') {
+          const storedId = sessionStorage.getItem(key);
+          if (storedId) {
+            const existing = await fetchProjectById(uid, storedId);
+            if (existing) {
+              setProject(existing);
+              await refreshProjects();
+              return;
+            }
+          }
+          const created = await insertProject(uid);
+          sessionStorage.setItem(key, created.id);
+          setProject(created);
+          await refreshProjects();
+          return;
+        }
+
         const storedId = sessionStorage.getItem(key);
         if (storedId) {
           const existing = await fetchProjectById(uid, storedId);
           if (existing) {
             setProject(existing);
+            await refreshProjects();
             return;
           }
         }
         const created = await insertProject(uid);
         sessionStorage.setItem(key, created.id);
         setProject(created);
-        return;
+        await refreshProjects();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
+        setProject(null);
+      } finally {
+        setIsProjectLoading(false);
       }
-
-      // SIGNED_IN — new login after sign-out: storage was cleared; prefer new row.
-      // If storage still has an id (duplicate event / race), reuse existing row.
-      const storedId = sessionStorage.getItem(key);
-      if (storedId) {
-        const existing = await fetchProjectById(uid, storedId);
-        if (existing) {
-          setProject(existing);
-          return;
-        }
-      }
-      const created = await insertProject(uid);
-      sessionStorage.setItem(key, created.id);
-      setProject(created);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
-      setProject(null);
-    } finally {
-      setIsProjectLoading(false);
-    }
-  }, []);
+    },
+    [refreshProjects],
+  );
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -179,21 +247,35 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       const created = await insertProject(uid);
       sessionStorage.setItem(storageKey(uid), created.id);
       setProject(created);
+      await refreshProjects();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsProjectLoading(false);
     }
-  }, []);
+  }, [refreshProjects]);
 
   const value = useMemo<ProjectContextValue>(
     () => ({
       project,
+      projects,
       isProjectLoading,
+      isProjectsListLoading,
       error,
       startNewProject,
+      refreshProjects,
+      selectProject,
     }),
-    [project, isProjectLoading, error, startNewProject],
+    [
+      project,
+      projects,
+      isProjectLoading,
+      isProjectsListLoading,
+      error,
+      startNewProject,
+      refreshProjects,
+      selectProject,
+    ],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
