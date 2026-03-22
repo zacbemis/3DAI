@@ -22,6 +22,13 @@ const OUTPUT_STL_PATH = path.join(SERVICE_ROOT, 'stlfile', 'output.stl');
 
 const stlCache = new StlCache();
 
+/**
+ * Default: **STL-only** — if OpenSCAD export fails, respond with **503 JSON** (no silent `.scad` fallback).
+ * Set `MASTER_FALLBACK_TO_SCAD=true` to restore returning OpenSCAD source as `text/plain` when export fails.
+ */
+const ALLOW_SCAD_FALLBACK =
+  process.env.MASTER_FALLBACK_TO_SCAD?.trim().toLowerCase() === 'true';
+
 /** Strips markdown fences from model output, then writes `output.scad`. */
 function writeOutputScad(contents: string): string {
   const clean = sanitizeScadSource(contents);
@@ -32,28 +39,34 @@ function writeOutputScad(contents: string): string {
 
 /**
  * Compile SCAD → STL, using the local cache when possible.
- * Returns the absolute path to the STL on success, or `null` on failure.
  */
-async function compileStl(scadText: string): Promise<string | null> {
+async function compileStl(
+  scadText: string,
+): Promise<{ path: string | null; exportError?: string }> {
   const cached = stlCache.lookup(scadText);
   if (cached) {
     console.log('[stl-cache] HIT — serving from cache');
-    return cached;
+    return { path: cached };
   }
 
   const result = await exportScadToStl(OUTPUT_SCAD_PATH, OUTPUT_STL_PATH);
   if (!result.ok) {
     console.warn('[STL export skipped]', result.message);
-    return null;
+    return { path: null, exportError: result.message };
   }
 
   const cachedPath = stlCache.store(scadText, result.stlPath);
   console.log('[stl-cache] MISS — compiled and cached at', cachedPath);
-  return cachedPath;
+  return { path: cachedPath };
 }
 
-/** POST response: binary STL when export succeeds, otherwise `.scad` source as text. */
-function respondWithStlOrScad(res: Response, scadText: string, stlPath: string | null): void {
+/** POST response: binary STL when export succeeds; otherwise 503 (default) or `.scad` text if fallback enabled. */
+function respondWithStlOrScad(
+  res: Response,
+  scadText: string,
+  stlPath: string | null,
+  exportError?: string,
+): void {
   if (stlPath && existsSync(stlPath)) {
     res.setHeader('Content-Type', 'model/stl');
     res.setHeader('Content-Disposition', 'attachment; filename="output.stl"');
@@ -61,8 +74,25 @@ function respondWithStlOrScad(res: Response, scadText: string, stlPath: string |
     res.sendFile(path.resolve(stlPath), (err) => {
       if (err && !res.headersSent) {
         res.removeHeader('X-Generated-Format');
+        if (!ALLOW_SCAD_FALLBACK) {
+          res.status(503).json({
+            error: 'Failed to read STL file after export',
+            details: err.message,
+          });
+          return;
+        }
+        res.setHeader('X-Generated-Format', 'scad');
         res.type('text/plain').send(scadText);
       }
+    });
+    return;
+  }
+  if (!ALLOW_SCAD_FALLBACK) {
+    res.status(503).json({
+      error: 'STL export failed',
+      details: exportError ?? 'OpenSCAD did not produce a file.',
+      hint:
+        'Check OpenSCAD stderr output, set OPENSCAD_PATH if needed, or set MASTER_FALLBACK_TO_SCAD=true to return .scad text on failure.',
     });
     return;
   }
@@ -71,6 +101,29 @@ function respondWithStlOrScad(res: Response, scadText: string, stlPath: string |
 }
 
 const app = express();
+
+// CORS: Vite/Electron renderer may call this API from another origin in dev
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // Chromium “Private Network Access” preflight (public → local)
+  if (req.headers['access-control-request-private-network'] === 'true') {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  }
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuidString(v: unknown): v is string {
+  return typeof v === 'string' && UUID_RE.test(v.trim());
+}
 
 // Parse JSON bodies (application/json) — required for req.body on POST
 app.use(express.json());
@@ -345,39 +398,45 @@ app.post('/generate', async (req, res, next) => {
     const raw = await generateText(prompt);
     const text = writeOutputScad(raw);
 
-    // Save to Supabase if configured (optional)
+    // Save to Supabase when configured. `prompts` requires `user_id` + `project_id` (FK + NOT NULL).
     if (db) {
-      const now = new Date().toISOString();
-      const row: Record<string, unknown> = {
-        prompt,
-        scad_code: text,
-        model: activeModel,
-        status: 'completed',
-        created_at: now,
-        completed_at: now,
-      };
-      if (req.body.user_id != null && req.body.user_id !== '') {
-        row.user_id = req.body.user_id;
-      }
-      if (req.body.project_id != null && req.body.project_id !== '') {
-        row.project_id = req.body.project_id;
-      }
-      if (req.body.max_steps != null) {
-        row.max_steps = req.body.max_steps;
-      }
-      if (req.body.auto_evaluate != null) {
-        row.auto_evaluate = req.body.auto_evaluate;
-      }
+      const uid = req.body?.user_id;
+      const pid = req.body?.project_id;
+      if (!isUuidString(uid) || !isUuidString(pid)) {
+        console.warn(
+          '[prompts insert skipped] send JSON with valid user_id and project_id (UUIDs) to persist rows —',
+          { hasUserId: isUuidString(uid), hasProjectId: isUuidString(pid) },
+        );
+      } else {
+        const now = new Date().toISOString();
+        const row: Record<string, unknown> = {
+          prompt,
+          scad_code: text,
+          model: activeModel,
+          status: 'completed',
+          user_id: uid.trim(),
+          project_id: pid.trim(),
+          created_at: now,
+          completed_at: now,
+        };
+        if (req.body.max_steps != null) {
+          row.max_steps = req.body.max_steps;
+        }
+        if (req.body.auto_evaluate != null) {
+          row.auto_evaluate = req.body.auto_evaluate;
+        }
 
-      const { error: insertError } = await db.from('prompts').insert(row);
-      if (insertError) {
-        console.error('[prompts insert]', insertError);
-        // Don't fail the request — still return the generated code
+        const { error: insertError } = await db.from('prompts').insert(row);
+        if (insertError) {
+          console.error('[prompts insert]', insertError);
+        } else {
+          console.log('[prompts insert] ok', pid.trim());
+        }
       }
     }
 
-    const stlPath = await compileStl(text);
-    respondWithStlOrScad(res, text, stlPath);
+    const { path: stlPath, exportError } = await compileStl(text);
+    respondWithStlOrScad(res, text, stlPath, exportError);
   } catch (err) {
     next(err);
   }
@@ -404,8 +463,8 @@ app.post('/modify', async (req, res, next) => {
       }
       const raw = await modifyText(original, prompt);
       const text = writeOutputScad(raw);
-      const stlPath = await compileStl(text);
-      respondWithStlOrScad(res, text, stlPath);
+      const { path: stlPath, exportError } = await compileStl(text);
+      respondWithStlOrScad(res, text, stlPath, exportError);
     } catch (err) {
       next(err);
     }
@@ -436,6 +495,11 @@ app.listen(3000, () => {
   console.log('Server is running on port 3000');
   console.log('Writes .scad to:', path.resolve(OUTPUT_SCAD_PATH));
   console.log('Writes .stl to:', path.resolve(OUTPUT_STL_PATH));
+  console.log(
+    ALLOW_SCAD_FALLBACK
+      ? 'STL policy: OpenSCAD failure → .scad text (MASTER_FALLBACK_TO_SCAD=true)'
+      : 'STL policy: OpenSCAD failure → 503 JSON (set MASTER_FALLBACK_TO_SCAD=true to allow .scad fallback)',
+  );
   console.log(
     'OpenSCAD binary (set OPENSCAD_PATH in .env if not found):',
     resolveOpenScadBinary(),

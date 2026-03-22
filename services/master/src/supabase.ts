@@ -8,7 +8,10 @@ let cached: SupabaseClient | null = null;
 /** Resolve API key from env (prefer service role on the server — bypasses RLS). */
 function resolveSupabaseKey(): string | undefined {
   return (
-    process.env.SUPABASE_SECRET?.trim()
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    process.env.SUPABASE_SECRET?.trim() ||
+    process.env.SUPABASE_KEY?.trim() ||
+    process.env.SUPABASE_ANON_KEY?.trim()
   );
 }
 
