@@ -1,0 +1,323 @@
+{
+  "history": [
+    {
+      "date": "2026-03-21",
+      "level": 2,
+      "totalObjects": 71,
+      "passed": 52,
+      "failed": 9,
+      "errors": 10,
+      "avgScore": 7.2,
+      "withTechniqueAvg": null,
+      "withoutTechniqueAvg": null,
+      "techniqueCount": 93,
+      "scores": [
+        {
+          "object": "vase",
+          "score": 7,
+          "feedback": "Good overall vase shape with smooth curves, a nice flared rim, and proper hollow interior visible from the top, but the belly is not wide enough — it looks more like a tall slender vase than one with a prominently wide belly."
+        },
+        {
+          "object": "chess rook",
+          "score": 8,
+          "feedback": "Excellent rook with recognizable silhouette, proper crenellations visible from all angles, good base/collar/tower proportions, and a hollow interior; the crenellations could be slightly more rectangular and the body profile could taper a bit more gracefully below the collar."
+        },
+        {
+          "object": "spur gear",
+          "score": 8,
+          "feedback": "The gear has the correct number of teeth, a proper center bore with hub, and good proportions; the tooth profile could be more involute-shaped rather than rectangular/straight-sided for a true spur gear."
+        },
+        {
+          "object": "hex nut",
+          "score": 8,
+          "feedback": "Good hex nut shape with clear hexagonal profile, central hole, and visible chamfered edges on top and bottom; the front/right views show the hole is not visible (appears solid), suggesting the through-hole may not fully penetrate or the camera angle obscures it."
+        },
+        {
+          "object": "shelf bracket",
+          "score": 8,
+          "feedback": "Excellent L-shaped bracket with a clean right-angle profile, nice support gusset, and well-placed countersunk screw holes on the vertical face; the horizontal shelf arm could use screw holes too for mounting to the shelf surface."
+        },
+        {
+          "object": "box enclosure",
+          "score": 9,
+          "feedback": "Excellent box enclosure with hollow interior, corner screw holes, alignment posts, and a properly-sized removable lid with lip detail; the only minor issue is the lid could show a clearer snap-fit or tongue-and-groove mechanism for secure attachment."
+        },
+        {
+          "object": "phone stand",
+          "score": 7,
+          "feedback": "Good overall structure with a stable base, angled backrest, and front lip to hold the phone, but the backrest appears too thin and flat like a slab rather than a supportive cradle, and the angle looks closer to 45 degrees than the requested 60 degrees."
+        },
+        {
+          "object": "bookshelf",
+          "score": 7,
+          "feedback": "The bookshelf has a correct overall structure with two shelves, side panels, a back panel, and a top overhang, but the front view shows the back panel fully obscuring the shelves and the shelves appear to lack visible depth from the front, making it look like a solid slab rather than an open bookshelf."
+        },
+        {
+          "object": "coffee cup",
+          "score": 7,
+          "feedback": "Good cylindrical cup shape with a base, rim, and hollow interior, but the handle is too small and thin relative to the cup body — it should be larger and more graspable."
+        },
+        {
+          "object": "desk organizer",
+          "score": 8,
+          "feedback": "Clean rectangular organizer with exactly 3 well-proportioned compartments and consistent wall thickness; could benefit from varied compartment sizes or slight design interest to look more like a real desk organizer rather than a plain divided box."
+        },
+        {
+          "object": "Cable Clip (Desk Edge Mount, 3 Cables)",
+          "score": 7,
+          "feedback": "Good C-shaped desk clamp profile with three well-defined cable channels featuring keyhole slots for snap-in, but the clip arms lack visible flex features or snap detents that would allow it to actually clip onto a desk edge securely."
+        },
+        {
+          "object": "Cabinet Drawer Pull",
+          "score": 7,
+          "feedback": "The arched handle shape and mounting flanges are well-formed with good proportions, but the screw holes are not visible in the mounting bases and the handle cross-section could be smoother with higher $fn."
+        },
+        {
+          "object": "5-Lobe Star Knob",
+          "score": 7,
+          "feedback": "Good 5-lobe star shape with smooth lobes, a raised center boss, and a center hole for a threaded insert; the lobes are a bit too rounded and blob-like rather than having the crisp, defined finger-grip shape of a typical star knob."
+        },
+        {
+          "object": "Kitchen Funnel",
+          "score": 8,
+          "feedback": "The funnel shape is immediately recognizable with a wide conical mouth, smooth walls, and a narrow cylindrical spout; the transition from cone to spout has a slight bulge/ring artifact that could be smoother."
+        },
+        {
+          "object": "Napkin Ring with Diamond Cutout Pattern",
+          "score": 6,
+          "feedback": "The cylindrical ring shape and repeating diamond cutout pattern are clearly present and recognizable, but the cutouts are too large and aggressive — they remove so much material that the band looks structurally fragile and more like a zigzag lattice than a decorative napkin ring with elegant diamond openings."
+        },
+        {
+          "object": "Pegboard Panel",
+          "score": 9,
+          "feedback": "Excellent pegboard with correct 6x4 grid of holes, proper rectangular proportions, smooth holes, and distinct mounting holes in all four corners; the only minor issue is the mounting holes appear only in two corners from the top view rather than clearly differentiated in all four."
+        },
+        {
+          "object": "Bottle Cap with Knurled Grip and Internal Thread",
+          "score": 5,
+          "feedback": "The overall bottle cap shape and knurled vertical ridges on the outside look good, but the internal helical thread is completely missing (not visible from any angle including the top view which shows a solid disc) and the cap appears too tall relative to its diameter for a typical bottle cap."
+        },
+        {
+          "object": "Commemorative Coin",
+          "score": 5,
+          "feedback": "The coin shape and raised rim are good, and the star is clearly visible and centered, but the star appears recessed rather than raised, there are rendering artifacts (radial lines/streaks on the face), and there is no raised text around the rim as specified."
+        },
+        {
+          "object": "Wall-Mounted Coat Hook",
+          "score": 8,
+          "feedback": "All features are present — flat mounting plate with two screw holes, a cylindrical arm, and a nicely rounded hook with smooth curves — but the screw holes are off-center on the plate and the hook could be slightly larger relative to the mounting plate for better proportions."
+        },
+        {
+          "object": "Cylindrical Candle Holder with Teardrop Cutouts",
+          "score": 8,
+          "feedback": "Excellent cylindrical candle holder with well-shaped teardrop cutouts in a clean repeating pattern across multiple rows, smooth walls, and proper hollow interior; the only minor issue is the teardrop cutouts could be slightly more elongated and the pattern could extend more evenly across the full height of the cylinder."
+        },
+        {
+          "object": "Door Stop Wedge with Grip Handle",
+          "score": 8,
+          "feedback": "The wedge shape with tapered profile and arch-style grip handle on top are both clearly present and well-proportioned; the handle could be slightly taller for easier gripping and the wedge taper angle could be a bit more gradual for realistic door-stop functionality."
+        },
+        {
+          "object": "Pen Body with Tapered Tip, Pocket Clip, and Cap",
+          "score": 7,
+          "feedback": "The pen body, tapered tip, cap, and pocket clip are all present with good proportions and a recognizable silhouette, but the pocket clip looks like a thin wire loop rather than a flat spring-style clip, and the cap could be slightly longer relative to the body."
+        },
+        {
+          "object": "Stackable Storage Bin with Interlocking Lip and Groove",
+          "score": 7,
+          "feedback": "Good rectangular bin shape with visible lip/rim and groove at the base for stacking, and nice rounded corners; the biggest issue is the interlocking mechanism isn't clearly defined enough — the lip and groove appear as simple ledges rather than a true interlocking profile that would securely prevent lateral sliding."
+        },
+        {
+          "object": "Guitar Pick",
+          "score": 8,
+          "feedback": "The rounded triangle silhouette is excellent with smooth curves and proper tapering to the tip visible in the side views; the thickness taper from 1mm to 0.5mm appears present but the pick looks slightly too thick/symmetrical in the side profiles rather than having a clearly visible gradual taper toward one tip."
+        },
+        {
+          "object": "Plant Pot with Drainage Holes and Matching Saucer",
+          "score": 7,
+          "feedback": "Good overall shape with a nice pot silhouette, matching saucer displayed side by side, and clearly visible drainage holes in the top view; the pot profile is slightly too tall and narrow (more like a goblet than a typical plant pot), and the saucer appears too large relative to the pot base."
+        },
+        {
+          "object": "Rain Gutter Section",
+          "score": 8,
+          "feedback": "The U-profile cross-section with outward-facing mounting lips on each side is clearly correct and well-proportioned, but the profile could benefit from a slight curve at the bottom of the U-channel rather than a sharp 90-degree corner for a more realistic rain gutter shape."
+        },
+        {
+          "object": "Soap Dish with Drainage Slots",
+          "score": 8,
+          "feedback": "Excellent soap dish with clear raised edges, rounded corners, and well-defined drainage slots visible in the isometric and top views; the dish could be improved by making the raised edges more prominent in the side views and adding a slight slope to the bottom for better drainage."
+        },
+        {
+          "object": "AA Battery Holder (2x2 Grid with Spring Contact Slots)",
+          "score": 4,
+          "feedback": "The 2x2 grid of cylindrical battery wells is correct and cleanly modeled, but the holder is far too tall (nearly cubic rather than shallow), the proportions don't match AA battery dimensions, and there are no spring contact slots or any contact features visible at the ends of the wells."
+        },
+        {
+          "object": "Ergonomic Lever Door Handle",
+          "score": 7,
+          "feedback": "Good overall lever handle shape with a nice curved grip, round rose plate, and smooth surfaces, but the square spindle hole is not visible and the grip could have a more pronounced ergonomic contour."
+        },
+        {
+          "object": "Bottle Opener",
+          "score": 8,
+          "feedback": "Excellent flat profile silhouette with a recognizable bottle opener shape including the prying hook, leverage cutout, and keychain hole; the opener hook could be slightly more refined with a sharper lip edge for realistic cap-catching geometry."
+        },
+        {
+          "object": "Drawer Divider with Interlocking Cross Slots",
+          "score": 8,
+          "feedback": "The grid layout with interlocking cross dividers is well-formed with clean intersections and good proportions visible in the isometric and top views, but the interlocking cross slots (half-lap joints where pieces slot into each other) are not visible — the dividers appear to simply pass through each other rather than having notched slots cut halfway up/down."
+        },
+        {
+          "object": "Flat Washer",
+          "score": 9,
+          "feedback": "Excellent flat washer with correct circular shape, centered bore, and thin profile; the bore-to-outer-diameter ratio and thickness proportions look accurate, with smooth surfaces and no artifacts — only minor issue is the front/right views don't show the bore hole due to the thin edge-on perspective."
+        },
+        {
+          "object": "Lampshade",
+          "score": 8,
+          "feedback": "The lampshade shape is excellent with a smooth curved profile, wide bottom opening, narrow top ring, and correct hollow interior visible from the top view; the profile could have a slightly more concave curvature to look less like a simple cone and more like a traditional lampshade."
+        },
+        {
+          "object": "Shower Drain Cover",
+          "score": 8,
+          "feedback": "Good circular disc shape with well-defined radial drainage slots emanating from the center; the slots could extend closer to the outer rim and a raised outer lip/edge would make it look more like a real drain cover."
+        },
+        {
+          "object": "Toilet Paper Holder (Wall Mount)",
+          "score": 7,
+          "feedback": "Good wall plate with screw holes and a cylindrical rod with end cap make a recognizable toilet paper holder, but the rod lacks a slight upward curve or retaining lip and the mounting bracket connection looks blocky rather than smooth."
+        },
+        {
+          "object": "Toothbrush Holder with 4 Slots",
+          "score": 7,
+          "feedback": "Good rectangular block shape with 4 clearly defined circular slots and smooth rounded edges, but the slots are too wide relative to the body leaving very thin walls between them, and the holder could be taller to better accommodate toothbrushes."
+        },
+        {
+          "object": "Towel Bar",
+          "score": 8,
+          "feedback": "All features are present with two wall bracket plates (with screw holes), support arms, and a smooth cylindrical rod connecting them; the brackets could be slightly more substantial relative to the rod for a more realistic towel bar proportion."
+        },
+        {
+          "object": "T-slot nut for aluminum extrusion",
+          "score": 7,
+          "feedback": "The T-shaped profile with wider base flanges and narrower raised center section is correct, and the through-hole is well-placed, but the threaded hole should show internal threading and the proportions of the raised section appear slightly too tall relative to the base flanges."
+        },
+        {
+          "object": "Wing Nut with M6 Bore",
+          "score": 7,
+          "feedback": "The overall wing nut shape is recognizable with two wings, a central hub, and an M6 bore hole, but the wings are too flat/thin and rectangular — real wing nuts have taller, more curved wings that rise above the hub for easy finger grip."
+        },
+        {
+          "object": "Cotter Pin (Retrain)",
+          "score": 6,
+          "feedback": "The overall cotter pin shape is recognizable with two parallel prongs, a looped eye at the top, and bent ends at the bottom, but the two legs should be the same length and the legs are too thick relative to their length, making it look stubby rather than like a proper thin-wire cotter pin."
+        },
+        {
+          "object": "Cam Lever with Eccentric Lobe and Pivot Bore",
+          "score": 6,
+          "feedback": "Good lever arm with handle grip, pivot bore hole, and eccentric lobe shape visible in top view, but the lobe's eccentricity is mild and the pivot bore appears centered in the lobe rather than offset to emphasize the cam's eccentric geometry."
+        },
+        {
+          "object": "Bearing Housing with Flange",
+          "score": 8,
+          "feedback": "The bearing housing has a well-proportioned cylindrical bore centered on a square flange with 4 correctly-placed bolt holes and smooth surfaces; the bolt holes could be through-holes rather than shallow counterbores, and the flange could benefit from rounded corners typical of real bearing housings."
+        },
+        {
+          "object": "Shaft Coupling",
+          "score": 8,
+          "feedback": "Good cylindrical coupling body with visible shaft bore, clamping slots, set screw holes on each half, and a center split line; the proportions look reasonable but the set screw slot on the front appears as an odd keyhole shape rather than a clean clamping slit."
+        },
+        {
+          "object": "Curtain Rod Bracket (Retrain)",
+          "score": 4,
+          "feedback": "The bracket has a wall-mount plate with screw holes and a curved cradle element, but the cradle is completely detached/floating above the bracket arm instead of being connected, making this non-functional as a single piece."
+        },
+        {
+          "object": "Jar Lid with Knurled Grip Edge",
+          "score": 5,
+          "feedback": "scorer failed"
+        },
+        {
+          "object": "AA Battery Holder (2x2 Layout)",
+          "score": 6,
+          "feedback": "Good 2x2 layout with four cylindrical slots and clean geometry, but the holder is too tall and cube-shaped — AA batteries are slim cylinders so the block should be much wider and shorter, and there's no visible feature to retain or eject the batteries."
+        },
+        {
+          "object": "Pulley Wheel with V-Groove",
+          "score": 8,
+          "feedback": "The pulley wheel has a clear V-groove visible in the front and right views, a center bore hole, and smooth circular profile with good proportions; the groove could be slightly more pronounced with a sharper V-angle to better match a true V-belt pulley."
+        },
+        {
+          "object": "Key Hook Rack (Retrain)",
+          "score": 7,
+          "feedback": "Good flat back plate with mounting holes and 4 evenly spaced hooks with a nice curved shape visible from the side, but the hooks are a bit small relative to the plate and could extend further outward to be more functional for holding keys."
+        },
+        {
+          "object": "USB Cable Organizer",
+          "score": 8,
+          "feedback": "Good flat base with 4 clearly defined cable slots featuring keyhole-style openings for easy cable insertion; the slots could be slightly wider and the base is a bit too flat/thin relative to the slot depth, but overall this is a well-proportioned and functional design."
+        },
+        {
+          "object": "Bird Feeder Tray with Rim and 2 Hanging Holes",
+          "score": 7,
+          "feedback": "Good flat tray with raised rim and two hanging tabs with holes on opposite ends; the hanging tabs could be taller and more prominent to clearly function as hanging points, and the rim is barely visible from the top view."
+        },
+        {
+          "object": "Business Card Holder with Angled Display Slot",
+          "score": 7,
+          "feedback": "Good overall shape with a flat base, angled back panel for display, and a card slot with side supports; the biggest issue is the back panel appears as a thin flat slab rather than having realistic thickness and the slot could be more clearly defined as a card-holding channel."
+        },
+        {
+          "object": "Chopstick Rest",
+          "score": 7,
+          "feedback": "Good elongated base shape with rounded ends and multiple concave grooves for holding chopsticks, but the grooves are too deep and wide, making it look more like a comb or wave pattern than the gentle shallow cradles typical of a chopstick rest."
+        },
+        {
+          "object": "Hose Barb Fitting for 10mm Hose",
+          "score": 8,
+          "feedback": "Excellent hose barb with clearly defined barbs tapering toward the tip, a hex nut grip section, and a hollow bore visible from the top; the barb ridges could have slightly more pronounced saw-tooth asymmetry for a more realistic one-way grip profile."
+        },
+        {
+          "object": "Measuring Scoop with Flat Handle",
+          "score": 7,
+          "feedback": "The scoop bowl and flat handle are both present with good proportions and a nice taper where they connect, but the scoop is too deep/spherical (more like a ladle) and should be shallower for a measuring scoop."
+        },
+        {
+          "object": "Paper Clip Holder Cup",
+          "score": 7,
+          "feedback": "Good cup shape with open top, smooth walls, and a nice base, but the wavy/bulging profile is overly decorative for a simple paper clip holder cup — a cleaner cylindrical or slightly tapered shape would be more recognizable and functional."
+        },
+        {
+          "object": "Rubber Stamp Handle",
+          "score": 7,
+          "feedback": "Good overall shape with a flat rectangular base, flared pedestal, and rounded ergonomic grip knob; the biggest issue is the visible stepped rings on the handle profile that should be smooth curves, and the grip top could be more elongated/ergonomic rather than round like a chess pawn."
+        },
+        {
+          "object": "Star-Shaped Cookie Cutter",
+          "score": 4,
+          "feedback": "The top view shows a clean 5-pointed star silhouette, but this is a solid star-shaped box/container rather than a cookie cutter — a cookie cutter should be a thin-walled open ring in the star shape with a cutting edge, not a solid filled form."
+        },
+        {
+          "object": "Wine Bottle Stopper",
+          "score": 8,
+          "feedback": "The stopper has a clearly recognizable tapered cork section, decorative round top with nice ring details, and a small finial knob; the decorative top could be slightly flatter/disc-like rather than fully spherical to better match typical wine stopper proportions."
+        },
+        {
+          "object": "an egg cup",
+          "score": 7,
+          "feedback": "Good overall egg cup silhouette with a nice pedestal base, smooth curves, and proper hollow bowl shape, but the cup portion is too wide and bowl-like — it should be narrower and more snugly shaped to cradle an egg rather than resembling a chalice or goblet."
+        },
+        {
+          "object": "desk nameplate with angled stand",
+          "score": 7,
+          "feedback": "Good overall shape with a flat base, angled nameplate panel, and embossed \"YOUR NAME\" text, but the angled stand is too shallow and the base appears as a thin slab rather than a proper wedge or easel-back support structure."
+        },
+        {
+          "object": "Over-Door Towel Hook (Retrain)",
+          "score": 7,
+          "feedback": "The right/side view clearly shows the correct over-door clip profile (U-shaped channel) with a curved hook on the front, and proportions are reasonable, but the hook is too small relative to the door clip portion and could use a more pronounced upward-curving hook to hold a towel securely."
+        }
+      ]
+    }
+  ]
+}

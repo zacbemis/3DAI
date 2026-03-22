@@ -1,0 +1,30 @@
+# Next Training Batch (auto-generated 2026-03-21)
+# 24 objects: 19 retrains, 0 L3 fails, 5 expansions
+#
+# Copy these into launch-training.sh OBJECTS array, or run:
+#   ./training/launch-training.sh  (if OBJECTS is updated)
+
+"vase"  # L2 regression: Good overall vase shape with smooth curves, a nice flared rim, and proper hollow interior visible from the top, but the belly is not wide enough — it looks more like a tall slender vase than one with a prominently wide belly.
+"Napkin Ring with Diamond Cutout Pattern"  # L2 regression: The cylindrical ring shape and repeating diamond cutout pattern are clearly present and recognizable, but the cutouts are too large and aggressive — they remove so much material that the band looks structurally fragile and more like a zigzag lattice than a decorative napkin ring with elegant diamond openings.
+"Bottle Cap with Knurled Grip and Internal Thread"  # L2 regression: The overall bottle cap shape and knurled vertical ridges on the outside look good, but the internal helical thread is completely missing (not visible from any angle including the top view which shows a solid disc) and the cap appears too tall relative to its diameter for a typical bottle cap.
+"Commemorative Coin"  # L2 regression: The coin shape and raised rim are good, and the star is clearly visible and centered, but the star appears recessed rather than raised, there are rendering artifacts (radial lines/streaks on the face), and there is no raised text around the rim as specified.
+"AA Battery Holder (2x2 Grid with Spring Contact Slots)"  # L2 regression: The 2x2 grid of cylindrical battery wells is correct and cleanly modeled, but the holder is far too tall (nearly cubic rather than shallow), the proportions don't match AA battery dimensions, and there are no spring contact slots or any contact features visible at the ends of the wells.
+"Cotter Pin (Retrain)"  # L2 regression: The overall cotter pin shape is recognizable with two parallel prongs, a looped eye at the top, and bent ends at the bottom, but the two legs should be the same length and the legs are too thick relative to their length, making it look stubby rather than like a proper thin-wire cotter pin.
+"Curtain Rod Bracket (Retrain)"  # L2 regression: The bracket has a wall-mount plate with screw holes and a curved cradle element, but the cradle is completely detached/floating above the bracket arm instead of being connected, making this non-functional as a single piece.
+"Jar Lid with Knurled Grip Edge"  # L2 regression: scorer failed
+"Star-Shaped Cookie Cutter"  # L2 regression: The top view shows a clean 5-pointed star silhouette, but this is a solid star-shaped box/container rather than a cookie cutter — a cookie cutter should be a thin-walled open ring in the star shape with a cutting edge, not a solid filled form.
+"twist vase"  # L2 error: Compile failed: spawnSync /bin/sh ETIMEDOUT
+"Honeycomb Coaster"  # L2 error: Compile failed: ERROR: Parser error: syntax error in file ../../../../../private
+"Ice Cube Tray with 4x3 Grid of Rounded Cube Cavities"  # L2 error: Compile failed: spawnSync /bin/sh ETIMEDOUT
+"Compression Spring"  # L2 error: Compile failed: spawnSync /bin/sh ETIMEDOUT
+"Ice Cube Tray"  # L2 error: Compile failed: spawnSync /bin/sh ETIMEDOUT
+"Garden Plant Label Stake"  # L2 error: Compile failed: ERROR: Parser error: syntax error in file ../../../../../private
+"Headphone Stand"  # L2 error: No render produced
+"Monitor Stand Riser"  # L2 error: Compile failed: ERROR: Parser error: syntax error in file ../../../../../private
+"Threaded Rod"  # L2 error: Compile failed: ERROR: Parser error: syntax error in file ../../../../../private
+"Herb Pot with Label Slot"  # L2 error: Compile failed: ERROR: Parser error: syntax error in file ../../../../../private
+"a chess pawn"  # expand weak category: uncategorized
+"a paperweight dome"  # expand weak category: uncategorized
+"a mushroom shape"  # expand weak category: uncategorized
+"a crown"  # expand weak category: uncategorized
+"a pyramid"  # expand weak category: uncategorized
