@@ -19,19 +19,27 @@ export function ChatPage() {
   const {
     messages,
     isBusy,
-    maxSteps,
-    setMaxSteps,
+    isPreviewLoading,
+    selectedModel,
+    setSelectedModel,
+    availableModels,
     sendPrompt,
     stlBuffer,
   } = useGenerationChat(project);
 
   const [showStages, setShowStages] = useState(false);
+  const [showModelMenu, setShowModelMenu] = useState(false);
   const [chatHeightPx, setChatHeightPx] = useState(96);
   const [isDragging, setIsDragging] = useState(false);
   const draggingRef = useRef(false);
+  const modelBtnRef = useRef<HTMLButtonElement>(null);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
 
   const stageMessages = messages.filter((m) => m.role === 'system');
   const chatMessages = messages.filter((m) => m.role !== 'system');
+
+  const composerDisabled = isBusy || isProjectLoading || !project;
+  const currentModel = availableModels.find((m) => m.id === selectedModel);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -57,6 +65,27 @@ export function ChatPage() {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, []);
+
+  useEffect(() => {
+    if (!showModelMenu) return;
+    function handleClick(e: MouseEvent) {
+      if (
+        modelMenuRef.current && !modelMenuRef.current.contains(e.target as Node) &&
+        modelBtnRef.current && !modelBtnRef.current.contains(e.target as Node)
+      ) {
+        setShowModelMenu(false);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setShowModelMenu(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [showModelMenu]);
 
   const viewerBusy = isBusy || isPreviewLoading;
   const generatingMessage = isPreviewLoading
@@ -100,8 +129,58 @@ export function ChatPage() {
 
           <section
             className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b border-white/10 px-3 py-1.5 text-xs text-zinc-400"
-            aria-label="Generation defaults"
+            aria-label="Generation controls"
           >
+            <div className="relative">
+              <button
+                ref={modelBtnRef}
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-zinc-300 transition-colors hover:bg-white/10"
+                onClick={() => setShowModelMenu((v) => !v)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-3 text-zinc-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                </svg>
+                {currentModel?.name ?? 'Select model'}
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-3 text-zinc-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </button>
+
+              {showModelMenu && (
+                <div
+                  ref={modelMenuRef}
+                  className="absolute bottom-full left-0 z-50 mb-1 max-h-48 w-52 overflow-y-auto rounded-lg border border-white/10 bg-[#161618] py-1 shadow-xl"
+                >
+                  {availableModels.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-zinc-500">
+                      No models — is the backend running?
+                    </div>
+                  )}
+                  {availableModels.map((m) => {
+                    const isActive = m.id === selectedModel;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => { setSelectedModel(m.id); setShowModelMenu(false); }}
+                        className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${
+                          isActive
+                            ? 'bg-indigo-500/15 text-indigo-300'
+                            : 'text-zinc-300 hover:bg-white/10'
+                        }`}
+                      >
+                        {isActive && (
+                          <span className="size-1.5 rounded-full bg-indigo-400" />
+                        )}
+                        <span className={isActive ? '' : 'ml-3.5'}>{m.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-zinc-300 transition-colors hover:bg-white/10"
@@ -110,22 +189,6 @@ export function ChatPage() {
             >
               {showStages ? 'Hide stages' : 'Show stages'}
             </button>
-            <label className="inline-flex cursor-pointer items-center gap-2">
-              <span className="text-zinc-500">Max steps</span>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                className="w-14 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-zinc-100 tabular-nums focus:border-indigo-500/60 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 disabled:opacity-50"
-                value={maxSteps}
-                disabled={composerDisabled}
-                onChange={(e) => {
-                  const n = Number.parseInt(e.target.value, 10);
-                  if (!Number.isNaN(n))
-                    setMaxSteps(Math.min(20, Math.max(1, n)));
-                }}
-              />
-            </label>
           </section>
 
           <div className="shrink-0 px-3 py-1.5">

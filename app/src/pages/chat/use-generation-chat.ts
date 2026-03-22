@@ -4,17 +4,20 @@ import { masterFetch, readMasterApiError } from '../../config/master-api';
 import { fetchLatestScadForProject } from '../../lib/supabase-projects';
 import type { ActiveProject } from '../../context/ProjectContext';
 
+export interface ModelInfo {
+  id: string;
+  name: string;
+  provider: 'claude' | 'gemini';
+}
+
 export interface UseGenerationChatResult {
   messages: ChatMessage[];
   isBusy: boolean;
-  /** Loading latest SCAD→STL for the selected project (e.g. after sidebar switch) */
   isPreviewLoading: boolean;
-  autoEvaluate: boolean;
-  setAutoEvaluate: (value: boolean) => void;
-  maxSteps: number;
-  setMaxSteps: (value: number) => void;
+  selectedModel: string;
+  setSelectedModel: (id: string) => void;
+  availableModels: ModelInfo[];
   sendPrompt: (text: string) => void;
-  /** Latest STL from master `POST /generate` or `/compile-scad` when `X-Generated-Format: stl` */
   stlBuffer: ArrayBuffer | null;
 }
 
@@ -22,11 +25,26 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [autoEvaluate, setAutoEvaluate] = useState(true);
-  const [maxSteps, setMaxSteps] = useState(5);
+  const [autoEvaluate] = useState(true);
+  const [maxSteps] = useState(5);
+  const [selectedModel, setSelectedModel] = useState('');
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [stlBuffer, setStlBuffer] = useState<ArrayBuffer | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const previewAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    masterFetch('/models')
+      .then((res) => res.json())
+      .then((data: { default: string; models: ModelInfo[] }) => {
+        if (cancelled) return;
+        setAvailableModels(data.models);
+        setSelectedModel((prev) => prev || data.default);
+      })
+      .catch((err) => console.warn('[models] Failed to fetch:', err));
+    return () => { cancelled = true; };
+  }, []);
 
   // When the active project changes, load latest saved SCAD and compile to STL
   useEffect(() => {
@@ -119,6 +137,8 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
             auto_evaluate: autoEvaluate,
           };
 
+          if (selectedModel) body.model = selectedModel;
+
           if (activeProject?.userId) body.user_id = activeProject.userId;
           if (activeProject?.id) body.project_id = activeProject.id;
           const uidEnv = import.meta.env.VITE_MASTER_USER_ID?.trim();
@@ -192,17 +212,16 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
         }
       })();
     },
-    [activeProject?.id, activeProject?.userId, autoEvaluate, isBusy, maxSteps],
+    [activeProject?.id, activeProject?.userId, autoEvaluate, isBusy, maxSteps, selectedModel],
   );
 
   return {
     messages,
     isBusy,
     isPreviewLoading,
-    autoEvaluate,
-    setAutoEvaluate,
-    maxSteps,
-    setMaxSteps,
+    selectedModel,
+    setSelectedModel,
+    availableModels,
     sendPrompt,
     stlBuffer,
   };

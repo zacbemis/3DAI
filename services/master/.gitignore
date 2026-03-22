@@ -8,3 +8,4 @@
 
 # Generated OpenSCAD / mesh outputs
 stlfile/*.stl
+stlfile/*.scad
