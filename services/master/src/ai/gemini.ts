@@ -4,6 +4,8 @@ import { getSkillsPrompt } from '../skills';
 import {
   buildGenerateSystemPrompt,
   buildModifySystemPrompt,
+  buildFixSystemPrompt,
+  buildReviseSystemPrompt,
   formatTechniqueGuidance,
   stripCodeFences,
 } from './prompts';
@@ -61,6 +63,46 @@ export async function modifyText(original: string, prompt: string): Promise<stri
   const result = await gemini.models.generateContent({
     model: MODEL,
     contents: `${systemPrompt}\n\n${userContent}`,
+  });
+
+  return stripCodeFences(result.text ?? '');
+}
+
+export async function fixText(brokenScad: string, errorOutput: string): Promise<string> {
+  await rateLimit();
+  const systemPrompt = buildFixSystemPrompt();
+
+  const result = await gemini.models.generateContent({
+    model: MODEL,
+    contents: `${systemPrompt}\n\nOpenSCAD code that failed:\n${brokenScad}\n\nCompiler error output:\n${errorOutput}`,
+  });
+
+  return stripCodeFences(result.text ?? '');
+}
+
+export async function reviseText(
+  original: string,
+  prompt: string,
+  imageDataUrls: string[],
+): Promise<string> {
+  await rateLimit();
+  const systemPrompt = buildReviseSystemPrompt();
+
+  const parts: Array<{ inlineData: { mimeType: string; data: string } } | string> = [];
+
+  for (const dataUrl of imageDataUrls) {
+    const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+    if (!match) continue;
+    parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+  }
+
+  parts.push(
+    `${systemPrompt}\n\nOriginal prompt: ${prompt}\n\nCurrent OpenSCAD code:\n${original}\n\nPlease examine the screenshots above. Fix any issues with the model so it better matches the original prompt.`,
+  );
+
+  const result = await gemini.models.generateContent({
+    model: MODEL,
+    contents: parts,
   });
 
   return stripCodeFences(result.text ?? '');

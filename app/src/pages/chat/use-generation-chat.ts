@@ -6,6 +6,7 @@ import {
   fetchLatestScadForProject,
 } from '../../lib/supabase-projects';
 import type { ActiveProject } from '../../context/ProjectContext';
+import type { StlViewerHandle } from '../../components/3js_view/StlImportViewer';
 
 export interface ModelInfo {
   id: string;
@@ -21,10 +22,15 @@ export interface UseGenerationChatResult {
   setSelectedModel: (id: string) => void;
   availableModels: ModelInfo[];
   sendPrompt: (text: string) => void;
+  rerun: () => void;
+  canRerun: boolean;
   stlBuffer: ArrayBuffer | null;
 }
 
-export function useGenerationChat(activeProject: ActiveProject | null): UseGenerationChatResult {
+export function useGenerationChat(
+  activeProject: ActiveProject | null,
+  viewerRef?: React.RefObject<StlViewerHandle | null>,
+): UseGenerationChatResult {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -33,6 +39,8 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
   const [selectedModel, setSelectedModel] = useState('');
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [stlBuffer, setStlBuffer] = useState<ArrayBuffer | null>(null);
+  const lastScadRef = useRef<string | null>(null);
+  const lastPromptRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const previewAbortRef = useRef<AbortController | null>(null);
 
@@ -193,6 +201,13 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
           }
 
           if (format === 'stl') {
+            const scadB64 = res.headers.get('X-Scad-Base64');
+            if (scadB64) {
+              try { lastScadRef.current = atob(scadB64); } catch { /* ignore decode errors */ }
+            }
+            lastPromptRef.current = trimmed;
+
+            const fixRetries = parseInt(res.headers.get('X-Fix-Retries') ?? '0', 10);
             const buf = await res.arrayBuffer();
             setStlBuffer(buf);
             setMessages((prev) => [
@@ -200,7 +215,9 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
               {
                 id: crypto.randomUUID(),
                 role: 'assistant',
-                content: 'STL ready — preview updated above.',
+                content: fixRetries > 0
+                  ? `STL ready — preview updated above. (auto-fixed ${fixRetries} compilation error${fixRetries > 1 ? 's' : ''})`
+                  : 'STL ready — preview updated above.',
                 createdAt: Date.now(),
               },
             ]);
@@ -238,6 +255,116 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
     [activeProject?.id, activeProject?.userId, autoEvaluate, isBusy, maxSteps, selectedModel],
   );
 
+  const rerun = useCallback(() => {
+    const scad = lastScadRef.current;
+    const prompt = lastPromptRef.current;
+    if (!scad || !prompt || isBusy) return;
+
+    const screenshots = viewerRef?.current?.captureScreenshots() ?? [];
+    if (screenshots.length === 0) {
+      console.warn('[rerun] No screenshots captured — viewer may not be ready');
+    }
+
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    const { signal } = ac;
+
+    const rerunMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: `Rerun: improving model with ${screenshots.length} reference screenshots`,
+      createdAt: Date.now(),
+    };
+    setMessages((prev) => [...prev, rerunMsg]);
+    setIsBusy(true);
+
+    void (async () => {
+      try {
+        const body: Record<string, unknown> = {
+          scad_code: scad,
+          prompt,
+          images: screenshots,
+        };
+        if (selectedModel) body.model = selectedModel;
+
+        const res = await masterFetch('/revise', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal,
+        });
+
+        const format = res.headers.get('X-Generated-Format');
+
+        if (!res.ok) {
+          const errText = await readMasterApiError(res);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: `Revision failed (${res.status}): ${errText}`,
+              createdAt: Date.now(),
+            },
+          ]);
+          return;
+        }
+
+        if (format === 'stl') {
+          const scadB64 = res.headers.get('X-Scad-Base64');
+          if (scadB64) {
+            try { lastScadRef.current = atob(scadB64); } catch { /* ignore */ }
+          }
+
+          const fixRetries = parseInt(res.headers.get('X-Fix-Retries') ?? '0', 10);
+          const buf = await res.arrayBuffer();
+          setStlBuffer(buf);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: fixRetries > 0
+                ? `Revised STL ready — preview updated above. (auto-fixed ${fixRetries} compilation error${fixRetries > 1 ? 's' : ''})`
+                : 'Revised STL ready — preview updated above.',
+              createdAt: Date.now(),
+            },
+          ]);
+          return;
+        }
+
+        const scadText = await res.text();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: `Revision returned text (no STL). First 500 chars:\n${scadText.slice(0, 500)}${scadText.length > 500 ? '…' : ''}`,
+            createdAt: Date.now(),
+          },
+        ]);
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+        console.error('rerun', e);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: `Rerun failed: ${e instanceof Error ? e.message : String(e)}`,
+            createdAt: Date.now(),
+          },
+        ]);
+      } finally {
+        if (abortRef.current === ac) abortRef.current = null;
+        setIsBusy(false);
+      }
+    })();
+  }, [isBusy, selectedModel, viewerRef]);
+
+  const canRerun = !!lastScadRef.current && !!lastPromptRef.current && !isBusy;
+
   return {
     messages,
     isBusy,
@@ -246,6 +373,8 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
     setSelectedModel,
     availableModels,
     sendPrompt,
+    rerun,
+    canRerun,
     stlBuffer,
   };
 }

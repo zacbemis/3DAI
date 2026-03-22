@@ -67,6 +67,31 @@ export async function modifyText(original: string, prompt: string, modelId?: str
   return geminiModify(original, prompt);
 }
 
+export async function fixText(brokenScad: string, errorOutput: string, modelId?: string): Promise<string> {
+  const provider = resolveProvider(modelId);
+  if (provider === 'claude') {
+    const m = await loadClaude();
+    return m.fixText(brokenScad, errorOutput);
+  }
+  const { fixText: geminiFix } = await import('./gemini');
+  return geminiFix(brokenScad, errorOutput);
+}
+
+export async function reviseText(
+  original: string,
+  prompt: string,
+  imageDataUrls: string[],
+  modelId?: string,
+): Promise<string> {
+  const provider = resolveProvider(modelId);
+  if (provider === 'claude') {
+    const m = await loadClaude();
+    return m.reviseText(original, prompt, imageDataUrls);
+  }
+  const { reviseText: geminiRevise } = await import('./gemini');
+  return geminiRevise(original, prompt, imageDataUrls);
+}
+
 export function resolveModelName(modelId?: string): string {
   if (!modelId) return getDefaultModel();
   const info = ALL_MODELS.find((m) => m.id === modelId);
