@@ -1,128 +1,152 @@
-$fn = 120; // Set $fn for smooth curves
+$fn = 120;
 
-// Coaster dimensions
-coaster_d = 100;        // Overall diameter of the coaster
-coaster_h = 4;          // Thickness of the base/lattice
-rim_h = 3.5;            // Height of the rim above the lattice
-border_w = 5;           // Width of the outer rim
+// Laptop overall dimensions
+laptop_width = 100;
+laptop_depth = 70;
+laptop_thickness_base = 6;
+laptop_thickness_screen = 4;
+laptop_corner_radius = 4;
 
-// Hex grid parameters
-grid_r = 6;             // Spacing parameter for hex cells (controls density)
-wall = 1.5;             // Desired wall thickness between cells
-cell_r = grid_r - wall / sqrt(3); // Derived hex cutout circumradius
+// Screen dimensions
+screen_bezel_thickness = 3;
+screen_x = laptop_width - (screen_bezel_thickness * 2);
+screen_y = laptop_depth - (screen_bezel_thickness * 2);
+screen_z = 0.5; // Thickness of the actual display part
 
-// Chamfer parameters for the rim
-chamfer_depth = 0.8;    // Depth of the chamfer on the rim edges
+// Keyboard dimensions
+keyboard_width = laptop_width - 8;
+keyboard_depth = laptop_depth / 2 - 4;
+keyboard_recess_depth = 0.5;
+key_size = 4;
+key_spacing = 1;
+key_height = 0.2;
 
-// Apple Logo Parameters
-apple_logo_diameter = 50;  // Overall diameter/width of the apple logo
-apple_logo_recess_depth = 1.0; // How deep the logo is cut into the base (z-direction)
+// Trackpad dimensions
+trackpad_width = 30;
+trackpad_depth = 20;
+trackpad_recess_depth = 0.5;
+trackpad_offset_x = 0; // Centered
+trackpad_offset_y = - (laptop_depth / 2 - 4 - trackpad_depth / 2) - 5; // Positioned below keyboard area
 
-// Derived apple logo dimensions (proportional to apple_logo_diameter)
-apple_body_r_base = apple_logo_diameter / 2;
-apple_lobe_r = apple_body_r_base * 0.45;     // Radius of top lobes
-apple_bottom_curve_r = apple_body_r_base * 0.55; // Radius of bottom part
-apple_bite_r = apple_body_r_base * 0.2;      // Radius of the bite
-apple_notch_w = apple_body_r_base * 0.15;    // Width of the top notch for the stem
-apple_stem_w = apple_body_r_base * 0.08;     // Width of the stem
-apple_stem_h = apple_body_r_base * 0.15;     // Height of the stem
-apple_leaf_w = apple_body_r_base * 0.25;     // Width of the leaf
-apple_leaf_l = apple_body_r_base * 0.4;      // Length of the leaf (when flattened)
-apple_leaf_angle = 45;                       // Angle of the leaf in degrees
-apple_leaf_offset_x = apple_stem_w * 1.5;    // X-offset for leaf from stem
-apple_leaf_offset_y = apple_lobe_r * 1.05 + apple_leaf_l * 0.2; // Y-offset for leaf
+// Hinge dimensions
+hinge_radius = 2.5;
+hinge_length = laptop_width - 20;
+hinge_clearance = 0.5; // Clearance for the hinge pin
 
-
-module hex_lattice() {
-    intersection() {
-        cylinder(h = coaster_h, d = coaster_d - border_w * 2);
-        difference() {
-            cylinder(h = coaster_h, d = coaster_d);
-            for (q = [-8 : 8])
-                for (r = [-8 : 8]) {
-                    x = grid_r * sqrt(3) * (q + r / 2);
-                    y = grid_r * 1.5 * r;
-                    // Clip hex cells to the inner diameter of the lattice
-                    if (sqrt(x*x + y*y) < (coaster_d - border_w * 2) / 2)
-                        translate([x, y, -1])
-                            cylinder(h = coaster_h + 2, r = cell_r, $fn = 6); // Use $fn=6 for hex cells
-                }
+module rounded_box(box_x, box_y, box_z, box_r) {
+    linear_extrude(height = box_z) {
+        minkowski() {
+            square([box_x - 2*box_r, box_y - 2*box_r], center = true);
+            circle(r = box_r, $fn = $fn);
         }
     }
 }
 
-module rim_ring() {
+module laptop_base() {
     difference() {
-        cylinder(h = coaster_h + rim_h, d = coaster_d);
-        translate([0, 0, -1])
-            cylinder(h = coaster_h + rim_h + 2, d = coaster_d - border_w * 2);
-        // Top chamfer
-        translate([0, 0, coaster_h + rim_h - chamfer_depth])
-            difference() {
-                cylinder(h = chamfer_depth + 1, r = coaster_d / 2 + 1);
-                cylinder(h = chamfer_depth + 1, r1 = coaster_d / 2, r2 = coaster_d / 2 - chamfer_depth);
-            }
-        // Bottom chamfer
-        translate([0, 0, -1])
-            difference() {
-                cylinder(h = chamfer_depth + 1, r = coaster_d / 2 + 1);
-                cylinder(h = chamfer_depth + 1, r1 = coaster_d / 2 - chamfer_depth, r2 = coaster_d / 2);
-            }
-    }
-}
+        // Main base body
+        rounded_box(laptop_width, laptop_depth, laptop_thickness_base, laptop_corner_radius);
 
-module apple_logo_cutout_shape() {
-    // Extrude slightly more than recess_depth to ensure a clean cut
-    logo_extrusion_height = apple_logo_recess_depth + 0.2;
+        // Keyboard recess
+        translate([0, (laptop_depth / 2) - (keyboard_depth / 2) - 4, laptop_thickness_base - keyboard_recess_depth - 0.01]) {
+            rounded_box(keyboard_width, keyboard_depth, keyboard_recess_depth + 0.02, laptop_corner_radius / 2);
+        }
 
-    linear_extrude(height = logo_extrusion_height, center = false) {
-        union() {
-            // Main apple body (2D outline)
-            difference() {
-                hull() {
-                    // Top lobes circles
-                    translate([-apple_lobe_r * 0.6, apple_lobe_r * 0.4, 0]) circle(r = apple_lobe_r);
-                    translate([apple_lobe_r * 0.6, apple_lobe_r * 0.4, 0]) circle(r = apple_lobe_r);
-                    // Bottom curve circle
-                    translate([0, -apple_lobe_r * 0.5, 0]) circle(r = apple_bottom_curve_r);
-                }
+        // Trackpad recess
+        translate([trackpad_offset_x, trackpad_offset_y, laptop_thickness_base - trackpad_recess_depth - 0.01]) {
+            rounded_box(trackpad_width, trackpad_depth, trackpad_recess_depth + 0.02, laptop_corner_radius / 2);
+        }
 
-                // Bite cutout
-                translate([0, -apple_bottom_curve_r * 1.15, 0]) circle(r = apple_bite_r);
-
-                // Stem notch cutout (creating a 'V' shape using hull of two small circles)
-                translate([0, apple_lobe_r * 0.9, 0])
-                    hull() {
-                        circle(r = apple_notch_w / 2, $fn=24); // Use moderate $fn for small details
-                        translate([0, apple_lobe_r * 0.4, 0]) circle(r = 0.1, $fn=24); // Small point to make V-shape
+        // Hinge cut for base (creates the top half of the hinge channel in the base)
+        translate([0, laptop_depth/2, laptop_thickness_base]) { // Move to the hinge pivot point
+             rotate([90,0,0]) { // Align cylinder along Y-axis (laptop width)
+                difference() {
+                    // Full cylinder representing the hinge channel volume
+                    cylinder(r=hinge_radius + hinge_clearance, h=hinge_length + 0.02, center = true);
+                    // Cut everything below the local Z=0 plane (keeps the Z>0 part)
+                    translate([0,0,-((hinge_radius + hinge_clearance) + 0.02)/2]) {
+                        cube([(hinge_radius + hinge_clearance)*2 + 0.04, hinge_length + 0.04, (hinge_radius + hinge_clearance) + 0.02], center = true);
                     }
+                }
             }
+        }
+    }
 
-            // Stem (2D rectangle)
-            translate([0, apple_lobe_r * 1.0, 0])
-                square([apple_stem_w, apple_stem_h], center = true);
-
-            // Leaf (2D flattened circle/oval)
-            translate([apple_leaf_offset_x, apple_leaf_offset_y, 0])
-                rotate([0, 0, apple_leaf_angle])
-                    scale([1, 0.5, 1]) // Flatten the circle to an oval
-                        circle(r = apple_leaf_l / 2);
+    // Keyboard keys (simplified)
+    translate([0, (laptop_depth / 2) - (keyboard_depth / 2) - 4, laptop_thickness_base - keyboard_recess_depth]) {
+        for (i = [0 : floor(keyboard_width / (key_size + key_spacing)) -1]) {
+            for (j = [0 : floor(keyboard_depth / (key_size + key_spacing)) -1]) {
+                translate([
+                    -keyboard_width/2 + (key_size/2) + i * (key_size + key_spacing),
+                    -keyboard_depth/2 + (key_size/2) + j * (key_size + key_spacing),
+                    key_height/2
+                ]) {
+                    cube([key_size, key_size, key_height], center = true);
+                }
+            }
         }
     }
 }
 
-module apple_logo_positioned_cutout() {
-    // Position the logo's bottom at -(recess_depth + some_epsilon) and its top at +some_epsilon
-    // This ensures it cuts clean into the z=0 surface of the coaster (the bottom of the lattice).
-    translate([0, 0, -apple_logo_recess_depth - 0.1]) // Move down to start cutting from below z=0
-        apple_logo_cutout_shape();
+module laptop_screen() {
+    difference() {
+        // Main screen body
+        rounded_box(laptop_width, laptop_depth, laptop_thickness_screen, laptop_corner_radius);
+
+        // Screen display recess
+        translate([0, 0, laptop_thickness_screen - screen_z - 0.01]) {
+            rounded_box(screen_x, screen_y, screen_z + 0.02, laptop_corner_radius / 2);
+        }
+
+        // Hinge cut for screen (creates the bottom half of the hinge channel in the screen)
+        translate([0, laptop_depth/2, 0]) { // Move to the hinge pivot point relative to screen's bottom
+             rotate([90,0,0]) { // Align cylinder along Y-axis (laptop width)
+                difference() {
+                    // Full cylinder representing the hinge channel volume
+                    cylinder(r=hinge_radius + hinge_clearance, h=hinge_length + 0.02, center = true);
+                    // Cut everything above the local Z=0 plane (keeps the Z<0 part)
+                    translate([0,0,((hinge_radius + hinge_clearance) + 0.02)/2]) {
+                        cube([(hinge_radius + hinge_clearance)*2 + 0.04, hinge_length + 0.04, (hinge_radius + hinge_clearance) + 0.02], center = true);
+                    }
+                }
+            }
+        }
+    }
 }
 
-// Assembly: Combine lattice and rim, then subtract the apple logo from the bottom
-difference() {
-    union() {
-        hex_lattice();
-        rim_ring();
+module laptop_hinge_pin() {
+    translate([0, laptop_depth/2, laptop_thickness_base]) { // Position at the hinge pivot point
+        rotate([90, 0, 0]) { // Align cylinder along Y-axis (laptop width)
+            cylinder(r = hinge_radius, h = hinge_length, center = true);
+        }
     }
-    apple_logo_positioned_cutout();
 }
+
+module laptop_assembly() {
+    // Base part
+    translate([0, 0, 0]) {
+        laptop_base();
+    }
+
+    // Screen part
+    open_angle = 120; // Angle from closed (0 degrees) to upright (90 degrees) to flat open (180 degrees)
+
+    // First, lift the screen so its bottom surface (Z=0 in its module) is at the base's top surface.
+    translate([0, 0, laptop_thickness_base]) {
+        // Then, rotate the screen around its back edge (which is at y = laptop_depth/2 in its local coordinates).
+        // This is done by moving the local hinge point to the origin, rotating, then moving back.
+        translate([0, laptop_depth/2, 0]) { // Move local hinge point (screen's back edge) to current origin
+            rotate([open_angle, 0, 0]) { // Rotate around X-axis
+                translate([0, -laptop_depth/2, 0]) { // Move local hinge point back to its position in screen's local space
+                    laptop_screen();
+                }
+            }
+        }
+    }
+
+    // Hinge pin (can be hidden if not needed for visual)
+    laptop_hinge_pin();
+}
+
+// Render the full laptop assembly
+laptop_assembly();

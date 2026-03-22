@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatMessage } from './chat-types';
 import { masterFetch, readMasterApiError } from '../../config/master-api';
-import { fetchLatestScadForProject } from '../../lib/supabase-projects';
+import {
+  fetchChatMessagesForProject,
+  fetchLatestScadForProject,
+} from '../../lib/supabase-projects';
 import type { ActiveProject } from '../../context/ProjectContext';
 
 export interface UseGenerationChatResult {
@@ -27,6 +30,27 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
   const [stlBuffer, setStlBuffer] = useState<ArrayBuffer | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const previewAbortRef = useRef<AbortController | null>(null);
+
+  // Replace chat with this project's prompt history from Supabase
+  useEffect(() => {
+    if (!activeProject?.id || !activeProject.userId) {
+      setMessages([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const msgs = await fetchChatMessagesForProject(
+        activeProject.id,
+        activeProject.userId,
+      );
+      if (!cancelled) setMessages(msgs);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProject?.id, activeProject?.userId]);
 
   // When the active project changes, load latest saved SCAD and compile to STL
   useEffect(() => {
