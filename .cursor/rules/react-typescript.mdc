@@ -9,6 +9,8 @@ alwaysApply: false
 ## Components
 
 - Functional components only — no class components
+- **Use named exports** for React components and pages (`export function Foo` / `export const Foo`), not `export default`
+- Exception: Vite/Electron config files may keep `export default` (tooling convention)
 - Define props as an `interface` named `{Component}Props`
 - Destructure props in the function signature
 - Colocate component, styles, and hooks in the same directory

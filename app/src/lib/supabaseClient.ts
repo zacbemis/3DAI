@@ -11,7 +11,7 @@ export function getSupabaseClient(): SupabaseClient {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error(
       'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY — auth will not work. ' +
-      'Create app/.env with these values.',
+        'Add them to `app/.env` (or `app/src/.env`) — copy from `app/.env.example`. Restart `npm start` after changes.',
     );
     instance = createClient('https://placeholder.supabase.co', 'placeholder');
     return instance;

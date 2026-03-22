@@ -15,7 +15,7 @@ interface ResetPasswordProps {
   onBackToLogin: () => void;
 }
 
-const ResetPassword: React.FC<ResetPasswordProps> = ({ onBackToLogin }) => {
+export function ResetPassword({ onBackToLogin }: ResetPasswordProps) {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -120,6 +120,4 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ onBackToLogin }) => {
       </AuthCard>
     </AuthPageShell>
   );
-};
-
-export default ResetPassword;
+}

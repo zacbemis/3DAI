@@ -15,11 +15,11 @@ export interface ChatAreaProps {
   autoEvaluate?: boolean;
 }
 
-const ChatArea: React.FC<ChatAreaProps> = ({
+export function ChatArea({
   onStlBuffer,
   maxSteps = 5,
   autoEvaluate = true,
-}) => {
+}: ChatAreaProps) {
   const { project, isProjectLoading, error: projectError } = useActiveProject();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -211,6 +211,4 @@ const ChatArea: React.FC<ChatAreaProps> = ({
       </div>
     </div>
   );
-};
-
-export default ChatArea;
+}

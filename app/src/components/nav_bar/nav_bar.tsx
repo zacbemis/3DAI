@@ -7,7 +7,7 @@ interface NavbarProps {
   onLogout?: () => void;
 }
 
-export default function Navbar({ onLoginClick, onChatClick, onLogout }: NavbarProps) {
+export function Navbar({ onLoginClick, onChatClick, onLogout }: NavbarProps) {
   const { isAuthenticated, user, logout } = useAuth();
 
   const handleLogout = async () => {

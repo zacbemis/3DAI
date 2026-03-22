@@ -23,11 +23,11 @@ function isEmailNotConfirmedError(msg: string): boolean {
   return lower.includes('email not confirmed') || lower.includes('email_not_confirmed');
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({
+export function LoginPage({
   onSignupClick,
   onLoginSuccess,
   onForgotPasswordClick,
-}) => {
+}: LoginPageProps) {
   const { login, resendConfirmation, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -155,6 +155,4 @@ const LoginPage: React.FC<LoginPageProps> = ({
       </AuthCard>
     </AuthPageShell>
   );
-};
-
-export default LoginPage;
+}

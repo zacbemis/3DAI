@@ -8,7 +8,15 @@ import {
   type ReactNode,
 } from 'react';
 import { getSupabaseClient } from '../lib/supabaseClient';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { AuthError, User as SupabaseUser } from '@supabase/supabase-js';
+
+/** Maps Supabase auth errors (incl. HTTP 429 rate limits) to UI-friendly text. */
+function formatAuthError(error: AuthError): string {
+  if (error.status === 429) {
+    return 'Too many sign-in or sign-up attempts. Wait a few minutes, then try again.';
+  }
+  return error.message || 'Authentication request failed';
+}
 
 export interface AuthUser {
   id: string;

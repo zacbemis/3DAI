@@ -18,10 +18,10 @@ interface SignupPageProps {
   onSignupSuccess: () => void;
 }
 
-const SignupPage: React.FC<SignupPageProps> = ({
+export function SignupPage({
   onBackToLogin,
   onSignupSuccess,
-}) => {
+}: SignupPageProps) {
   const { signup, resendConfirmation, isLoading } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -201,6 +201,4 @@ const SignupPage: React.FC<SignupPageProps> = ({
       </AuthCard>
     </AuthPageShell>
   );
-};
-
-export default SignupPage;
+}

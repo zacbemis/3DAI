@@ -639,6 +639,16 @@ app.post('/generate', async (req, res, next) => {
         const { error: insertError } = await db.from('prompts').insert(row);
         if (insertError) {
           console.error('[prompts insert]', insertError);
+          if (
+            insertError.code === '42501' ||
+            insertError.message?.toLowerCase().includes('row-level security')
+          ) {
+            console.error(
+              '[prompts insert] RLS blocked the insert. Use the service role key on this server: set ' +
+                'SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET) in services/master/.env to the value from ' +
+                'Supabase Dashboard → Settings → API → service_role (secret). Do not use the anon key here unless your RLS policies allow server inserts.',
+            );
+          }
         } else {
           console.log('[prompts insert] ok', pid.trim());
         }

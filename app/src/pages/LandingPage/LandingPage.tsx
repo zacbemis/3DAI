@@ -1,4 +1,4 @@
-import Navbar from '../../components/nav_bar/nav_bar';
+import { Navbar } from '../../components/nav_bar/nav_bar';
 import landingBg from '../../assets/higher_res_bg.png';
 import logo from '../../assets/logo_transparent.png';
 
