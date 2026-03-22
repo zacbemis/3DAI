@@ -1,27 +1,95 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatMessage } from './chat-types';
 import { masterFetch, readMasterApiError } from '../../config/master-api';
+import { fetchLatestScadForProject } from '../../lib/supabase-projects';
 import type { ActiveProject } from '../../context/ProjectContext';
 
 export interface UseGenerationChatResult {
   messages: ChatMessage[];
   isBusy: boolean;
+  /** Loading latest SCAD→STL for the selected project (e.g. after sidebar switch) */
+  isPreviewLoading: boolean;
   autoEvaluate: boolean;
   setAutoEvaluate: (value: boolean) => void;
   maxSteps: number;
   setMaxSteps: (value: number) => void;
   sendPrompt: (text: string) => void;
-  /** Latest STL from master `POST /generate` when `X-Generated-Format: stl` */
+  /** Latest STL from master `POST /generate` or `/compile-scad` when `X-Generated-Format: stl` */
   stlBuffer: ArrayBuffer | null;
 }
 
 export function useGenerationChat(activeProject: ActiveProject | null): UseGenerationChatResult {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isBusy, setIsBusy] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [autoEvaluate, setAutoEvaluate] = useState(true);
   const [maxSteps, setMaxSteps] = useState(5);
   const [stlBuffer, setStlBuffer] = useState<ArrayBuffer | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const previewAbortRef = useRef<AbortController | null>(null);
+
+  // When the active project changes, load latest saved SCAD and compile to STL
+  useEffect(() => {
+    if (!activeProject?.id || !activeProject.userId) return;
+
+    previewAbortRef.current?.abort();
+    const ac = new AbortController();
+    previewAbortRef.current = ac;
+    const { signal } = ac;
+
+    let cancelled = false;
+
+    void (async () => {
+      setIsPreviewLoading(true);
+      try {
+        const scad = await fetchLatestScadForProject(activeProject.id, activeProject.userId);
+        if (cancelled || signal.aborted) return;
+        if (!scad?.trim()) {
+          setStlBuffer(null);
+          return;
+        }
+
+        const res = await masterFetch('/compile-scad', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scad }),
+          signal,
+        });
+
+        if (cancelled || signal.aborted) return;
+
+        if (!res.ok) {
+          const errText = await readMasterApiError(res);
+          console.warn('[compile-scad preview]', res.status, errText);
+          return;
+        }
+
+        const format = res.headers.get('X-Generated-Format');
+        if (format === 'stl') {
+          const buf = await res.arrayBuffer();
+          setStlBuffer(buf);
+        }
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+        console.error('project preview load', e);
+      } finally {
+        if (!cancelled) setIsPreviewLoading(false);
+        if (previewAbortRef.current === ac) previewAbortRef.current = null;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, [activeProject?.id, activeProject?.userId]);
+
+  // Abort in-flight /generate when switching projects so STL never applies to the wrong project
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, [activeProject?.id]);
 
   const sendPrompt = useCallback(
     (text: string) => {
@@ -42,7 +110,6 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
 
       setMessages((prev) => [...prev, userMessage]);
       setIsBusy(true);
-      // Keep previous STL on screen until the new request returns a replacement (or error)
 
       void (async () => {
         try {
@@ -131,6 +198,7 @@ export function useGenerationChat(activeProject: ActiveProject | null): UseGener
   return {
     messages,
     isBusy,
+    isPreviewLoading,
     autoEvaluate,
     setAutoEvaluate,
     maxSteps,

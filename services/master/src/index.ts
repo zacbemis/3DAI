@@ -393,6 +393,28 @@ app.post('/prompts/by-id', async (req, res) => {
   res.json(data);
 });
 
+/**
+ * Compile existing OpenSCAD to STL (no LLM). Used when switching projects in the app.
+ * Body: { "scad": "..." }
+ */
+app.post('/compile-scad', async (req, res, next) => {
+  try {
+    const scad = req.body?.scad;
+    if (typeof scad !== 'string' || !scad.trim()) {
+      res.status(400).json({
+        error: 'Missing or invalid "scad" in JSON body',
+        hint: 'Send JSON: {"scad":"// your openscad ..."}',
+      });
+      return;
+    }
+    const text = writeOutputScad(scad);
+    const { path: stlPath, exportError } = await compileStl(text);
+    respondWithStlOrScad(res, text, stlPath, exportError);
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.post('/generate', async (req, res, next) => {
   const db = getSupabase();
   try {
@@ -517,6 +539,7 @@ app.listen(3000, () => {
     resolveOpenScadBinary(),
   );
   console.log(`STL cache: ${stlCache.size()} entries (30-day TTL, hourly cleanup)`);
+  console.log('POST /compile-scad — compile saved SCAD to STL (no LLM)');
   console.log('POST /generate & /modify return STL when export succeeds (see X-Generated-Format).');
   console.log('POST /projects — create project (user_id, name, …)');
   console.log('GET /projects/:projectId/prompts — list prompts for a project');

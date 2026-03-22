@@ -1,17 +1,24 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatComposer } from './ChatComposer';
 import { ChatMessageList } from './ChatMessageList';
 import { useGenerationChat } from './use-generation-chat';
 import { StlImportViewer } from '../../components/3js_view/StlImportViewer';
+import { ProjectsSidebar } from '../../components/projects/ProjectsSidebar';
 import { useActiveProject } from '../../context/ProjectContext';
+
+const CHAT_MIN_PX = 80;
+const CHAT_MIN_VIEWER_PX = 100;
+
+function getChatMaxPx(): number {
+  if (typeof window === 'undefined') return 400;
+  return Math.max(400, window.innerHeight - CHAT_MIN_VIEWER_PX);
+}
 
 export function ChatPage() {
   const { project, isProjectLoading, error: projectError, startNewProject } = useActiveProject();
   const {
     messages,
     isBusy,
-    autoEvaluate,
-    setAutoEvaluate,
     maxSteps,
     setMaxSteps,
     sendPrompt,
@@ -19,18 +26,54 @@ export function ChatPage() {
   } = useGenerationChat(project);
 
   const [showStages, setShowStages] = useState(false);
+  const [chatHeightPx, setChatHeightPx] = useState(96);
+  const [isDragging, setIsDragging] = useState(false);
+  const draggingRef = useRef(false);
+
   const stageMessages = messages.filter((m) => m.role === 'system');
   const chatMessages = messages.filter((m) => m.role !== 'system');
 
-  const composerDisabled = isBusy || isProjectLoading || !project;
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return;
+      const height = window.innerHeight - e.clientY;
+      const max = getChatMaxPx();
+      setChatHeightPx(Math.min(max, Math.max(CHAT_MIN_PX, height)));
+    };
+    const handleMouseUp = () => {
+      draggingRef.current = false;
+      setIsDragging(false);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  const viewerBusy = isBusy || isPreviewLoading;
+  const generatingMessage = isPreviewLoading
+    ? 'Loading last saved model for this project…'
+    : isBusy
+      ? 'Generating… previous model stays until the new STL is ready.'
+      : undefined;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
-      <main className="relative flex min-h-0 flex-1 flex-col">
+    <div className="relative flex h-full min-h-0 flex-row overflow-hidden bg-[#0a0a0c] text-zinc-100">
+      <ProjectsSidebar />
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <section className="min-h-0 flex-1 overflow-hidden">
           <StlImportViewer
             stlBuffer={stlBuffer}
-            isGenerating={isBusy}
+            isGenerating={viewerBusy}
+            generatingMessage={generatingMessage}
             project={project}
             projectLoading={isProjectLoading}
             projectError={projectError}
@@ -38,12 +81,22 @@ export function ChatPage() {
           />
         </section>
 
-        <section className="shrink-0 border-t border-white/10 bg-white/2">
-          {chatMessages.length > 0 ? (
-            <div className="max-h-24 min-h-0 overflow-y-auto border-b border-white/10 px-3">
-              <ChatMessageList messages={chatMessages} emptyMessage="No messages yet." />
-            </div>
-          ) : null}
+        <button
+          type="button"
+          className={`flex h-1.5 shrink-0 cursor-ns-resize items-center justify-center border-t border-white/10 bg-white/[0.02] transition-colors hover:bg-white/5 active:bg-white/10 ${isDragging ? 'bg-white/10' : ''}`}
+          onMouseDown={handleResizeStart}
+          aria-label="Resize chat history"
+        >
+          <span className="h-1 w-8 rounded-full bg-white/20" aria-hidden />
+        </button>
+
+        <section
+          className="flex shrink-0 flex-col border-t border-white/10 bg-white/[0.02]"
+          style={{ height: chatHeightPx }}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto border-b border-white/10 px-3">
+            <ChatMessageList messages={chatMessages} emptyMessage="No messages yet." />
+          </div>
 
           <section
             className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b border-white/10 px-3 py-1.5 text-xs text-zinc-400"
@@ -57,16 +110,6 @@ export function ChatPage() {
             >
               {showStages ? 'Hide stages' : 'Show stages'}
             </button>
-            <label className="inline-flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                className="size-3.5 rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:ring-offset-0"
-                checked={autoEvaluate}
-                onChange={(e) => setAutoEvaluate(e.target.checked)}
-                disabled={composerDisabled}
-              />
-              <span>Auto-evaluate (vision loop)</span>
-            </label>
             <label className="inline-flex cursor-pointer items-center gap-2">
               <span className="text-zinc-500">Max steps</span>
               <input
@@ -89,7 +132,6 @@ export function ChatPage() {
             <ChatComposer onSend={sendPrompt} disabled={composerDisabled} />
           </div>
         </section>
-
         {showStages && (
           <section
             className="absolute inset-x-0 top-1/2 z-30 mx-3 flex h-[45%] -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0c]/95 backdrop-blur-lg"
