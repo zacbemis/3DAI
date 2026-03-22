@@ -1,9 +1,9 @@
 import express, { type ErrorRequestHandler, type Response } from 'express';
 import path from 'node:path';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { generateText, modifyText, activeModel, activeProvider } from './ai';
+import { generateText, modifyText, activeModel, activeProvider, getAvailableModels, resolveModelName } from './ai';
 
-console.log(`[AI Backend] Using: ${activeProvider} (${activeModel})`);
+console.log(`[AI Backend] Default: ${activeProvider} (${activeModel})`);
 import {
   exportScadToStl,
   resolveOpenScadBinary,
@@ -132,6 +132,15 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (_req, res) => {
   res.send('Hello World');
+});
+
+/** Available AI models (based on configured API keys). */
+app.get('/models', (_req, res) => {
+  const models = getAvailableModels();
+  res.json({
+    default: activeModel,
+    models,
+  });
 });
 
 /** Health: Supabase connector configured (does not validate network). */
@@ -417,10 +426,12 @@ app.post('/generate', async (req, res, next) => {
       });
       return;
     }
-    const raw = await generateText(prompt);
+    const requestedModel = typeof req.body?.model === 'string' ? req.body.model.trim() : undefined;
+    const modelUsed = resolveModelName(requestedModel);
+
+    const raw = await generateText(prompt, requestedModel);
     const text = writeOutputScad(raw);
 
-    // Save to Supabase when configured. `prompts` requires `user_id` + `project_id` (FK + NOT NULL).
     if (db) {
       const uid = req.body?.user_id;
       const pid = req.body?.project_id;
@@ -434,7 +445,7 @@ app.post('/generate', async (req, res, next) => {
         const row: Record<string, unknown> = {
           prompt,
           scad_code: text,
-          model: activeModel,
+          model: modelUsed,
           status: 'completed',
           user_id: uid.trim(),
           project_id: pid.trim(),
@@ -483,7 +494,8 @@ app.post('/modify', async (req, res, next) => {
         });
         return;
       }
-      const raw = await modifyText(original, prompt);
+      const requestedModel = typeof req.body?.model === 'string' ? req.body.model.trim() : undefined;
+      const raw = await modifyText(original, prompt, requestedModel);
       const text = writeOutputScad(raw);
       const { path: stlPath, exportError } = await compileStl(text);
       respondWithStlOrScad(res, text, stlPath, exportError);
