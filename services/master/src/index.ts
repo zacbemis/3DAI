@@ -1,6 +1,6 @@
 import express, { type ErrorRequestHandler, type Response } from 'express';
 import path from 'node:path';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { generateText, modifyText, activeModel, activeProvider, getAvailableModels, resolveModelName } from './ai';
 
 console.log(`[AI Backend] Default: ${activeProvider} (${activeModel})`);
@@ -68,24 +68,16 @@ function respondWithStlOrScad(
   exportError?: string,
 ): void {
   if (stlPath && existsSync(stlPath)) {
-    res.setHeader('Content-Type', 'model/stl');
-    res.setHeader('Content-Disposition', 'attachment; filename="output.stl"');
-    res.setHeader('X-Generated-Format', 'stl');
-    res.sendFile(path.resolve(stlPath), (err) => {
-      if (err && !res.headersSent) {
-        res.removeHeader('X-Generated-Format');
-        if (!ALLOW_SCAD_FALLBACK) {
-          res.status(503).json({
-            error: 'Failed to read STL file after export',
-            details: err.message,
-          });
-          return;
-        }
-        res.setHeader('X-Generated-Format', 'scad');
-        res.type('text/plain').send(scadText);
-      }
-    });
-    return;
+    try {
+      const stlData = readFileSync(path.resolve(stlPath));
+      res.setHeader('Content-Type', 'model/stl');
+      res.setHeader('Content-Disposition', 'attachment; filename="output.stl"');
+      res.setHeader('X-Generated-Format', 'stl');
+      res.send(stlData);
+      return;
+    } catch (err) {
+      console.error('[STL read error]', err);
+    }
   }
   if (!ALLOW_SCAD_FALLBACK) {
     res.status(503).json({
