@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import LoginPage from './pages/LoginPage/LoginPage';
 import { LandingPage } from './pages/LandingPage/LandingPage';
-import ResetPassword from './pages/ResetPassword/ResetPassword';
-import SignupPage from './pages/SignupPage/SignupPage';
-import UpdatePassword from './pages/UpdatePassword/UpdatePassword';
+import { LoginPage } from './pages/LoginPage/LoginPage';
+import { ResetPassword } from './pages/ResetPassword/ResetPassword';
+import { SignupPage } from './pages/SignupPage/SignupPage';
+import { UpdatePassword } from './pages/UpdatePassword/UpdatePassword';
 import { ChatPage } from './pages/chat/ChatPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
@@ -25,6 +25,8 @@ function AppRoutes() {
   const pendingView = useRef<View | null>(null);
   const sessionRestored = useRef(false);
 
+  // After Supabase restores a persisted session, open chat so users stay signed in across restarts.
+  // (Session lives in localStorage — `npm start` does not clear it.)
   useEffect(() => {
     if (!isInitializing && !sessionRestored.current) {
       sessionRestored.current = true;
@@ -107,7 +109,7 @@ function AppRoutes() {
         <UpdatePassword onComplete={() => navigateTo('login')} />
       )}
 
-      {view === 'chat' && (isAuthenticated ? <ChatPage /> : null)}
+      {view === 'chat' && (isAuthenticated ? <ChatPage onNavigateHome={() => navigateTo('landing')} /> : null)}
     </div>
   );
 }

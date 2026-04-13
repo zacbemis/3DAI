@@ -12,7 +12,7 @@ import { PasswordRequirements } from '../../components/auth/PasswordRequirements
 import { validatePassword } from '../../lib/validation';
 import logo from '../../assets/logo_transparent.png';
 
-const UpdatePassword = ({ onComplete }: { onComplete: () => void }) => {
+export function UpdatePassword({ onComplete }: { onComplete: () => void }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -97,6 +97,4 @@ const UpdatePassword = ({ onComplete }: { onComplete: () => void }) => {
       </AuthCard>
     </AuthPageShell>
   );
-};
-
-export default UpdatePassword;
+}

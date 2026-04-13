@@ -104,7 +104,7 @@ export const StlImportViewer = forwardRef<StlViewerHandle, StlImportViewerProps>
       renderer.setSize(container.clientWidth, container.clientHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
       container.appendChild(renderer.domElement);
       rendererRef.current = renderer;
 

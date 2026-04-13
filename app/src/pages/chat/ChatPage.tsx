@@ -5,6 +5,7 @@ import { useGenerationChat } from './use-generation-chat';
 import { StlImportViewer, type StlViewerHandle } from '../../components/3js_view/StlImportViewer';
 import { ProjectsSidebar } from '../../components/projects/ProjectsSidebar';
 import { useActiveProject } from '../../context/ProjectContext';
+import { useAuth } from '../../context/AuthContext';
 
 const CHAT_MIN_PX = 80;
 const CHAT_MIN_VIEWER_PX = 100;
@@ -14,7 +15,13 @@ function getChatMaxPx(): number {
   return Math.max(400, window.innerHeight - CHAT_MIN_VIEWER_PX);
 }
 
-export function ChatPage() {
+export interface ChatPageProps {
+  /** Return to landing (e.g. after Log out). Session persistence otherwise keeps you on chat after restart. */
+  onNavigateHome: () => void;
+}
+
+export function ChatPage({ onNavigateHome }: ChatPageProps) {
+  const { logout } = useAuth();
   const { project, isProjectLoading, error: projectError, startNewProject } = useActiveProject();
   const viewerRef = useRef<StlViewerHandle>(null);
   const {
@@ -100,8 +107,31 @@ export function ChatPage() {
       ? 'Generating… previous model stays until the new STL is ready.'
       : undefined;
 
+  const handleLogout = async () => {
+    await logout();
+    onNavigateHome();
+  };
+
   return (
-    <div className="relative flex h-full min-h-0 flex-row overflow-hidden bg-[#0a0a0c] text-zinc-100">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0a0a0c] text-zinc-100">
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#0c0c0e] px-3 py-2">
+        <button
+          type="button"
+          className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+          onClick={onNavigateHome}
+        >
+          Home
+        </button>
+        <span className="truncate text-xs text-zinc-500">3DAI</span>
+        <button
+          type="button"
+          className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/10"
+          onClick={() => void handleLogout()}
+        >
+          Log out
+        </button>
+      </header>
+      <div className="relative flex min-h-0 flex-1 flex-row overflow-hidden">
       <ProjectsSidebar />
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <section className="min-h-0 flex-1 overflow-hidden">
@@ -248,6 +278,7 @@ export function ChatPage() {
           </section>
         )}
       </main>
+      </div>
     </div>
   );
 }
