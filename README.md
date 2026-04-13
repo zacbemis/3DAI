@@ -53,6 +53,19 @@ Not quite right? Just keep chatting. Say *"make it taller"* or *"add a hole in t
 
 ---
 
+## Built with
+
+| Area | Technology |
+|---|---|
+| Desktop app | [Electron](https://www.electronjs.org/) + [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com/) |
+| 3D viewer | [Three.js](https://threejs.org/) |
+| AI models | [Anthropic Claude](https://www.anthropic.com/) · [Google Gemini](https://deepmind.google/technologies/gemini/) |
+| 3D compilation | [OpenSCAD](https://openscad.org/) (text → STL) |
+| Auth & cloud storage | [Supabase](https://supabase.com/) |
+
+---
+
 ## License
 
 MIT
